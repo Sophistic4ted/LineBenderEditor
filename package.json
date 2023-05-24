@@ -4,7 +4,9 @@
   "description": "",
   "main": "index.ts",
   "scripts": {
-    "build": "tsc"
+    "build": "tsc",
+    "test":  "tsc",
+    "posttest": "copy base dist && copy res dist"
   },
   "keywords": [],
   "author": "",

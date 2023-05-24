@@ -54,10 +54,10 @@ body {
 }
 
 #canvas-container {
-    flex: 4;
     display: flex;
     justify-content: center;
     align-items: center;
+    overflow: hidden;
     background: #1a1a1a; /* Dark gray background */
     box-shadow: inset 0px 0px 10px rgba(0, 0, 0, 0.1); /* Subtle inner shadow for depth */
 }
