@@ -23,6 +23,8 @@ export class GridEditor {
   private isDrawing: boolean;
   private lines: Line[];
   private currentLine: Line | null;
+  private lastMove: number = 0;
+  private throttle: number = 100;
 
   constructor(spriteLoader: SpriteLoader, tileSelector: TileSelector, tileSize: number, gridWidth: number, gridHeight: number) {
     this.canvas = document.createElement('canvas');
@@ -66,7 +68,7 @@ export class GridEditor {
   }
 
   private onCanvasMouseMove(event: MouseEvent) {
-    if (this.isDrawing) {
+     if (this.isDrawing) {
       this.updateLineTiles(event);
     }
   }
@@ -102,14 +104,22 @@ export class GridEditor {
         ['', '', ''],
       ],
     };
-  
     if (this.currentLine) {
-      if (this.currentLine.tiles.length > 0) {
-        const lastTile = this.currentLine.tiles[this.currentLine.tiles.length - 1];
-        const dx = gridX - lastTile.x;
-        const dy = gridY - lastTile.y;
-  
-        if (dx !== 0 || dy !== 0) {
+        if (this.currentLine.tiles.length > 0) {
+          const lastTile = this.currentLine.tiles[this.currentLine.tiles.length - 1];
+          const dx = gridX - lastTile.x;
+          const dy = gridY - lastTile.y;
+    
+          // Calculate the distance between the last tile and the current tile
+          const numIntermediateTiles = Math.abs(dx) + Math.abs(dy);
+          console.log(numIntermediateTiles);
+          // If the distance is greater than a certain threshold, cancel the current line
+          if (numIntermediateTiles > 2) {
+            this.isDrawing = false;
+            this.currentLine = null;
+            alert("Whoa there, cowboy! You're going too fast!");
+            return;
+          } else if (dx !== 0 || dy !== 0) {
           const xStep = dx !== 0 ? dx / Math.abs(dx) : 0;
           const yStep = dy !== 0 ? dy / Math.abs(dy) : 0;
           let currentX = lastTile.x;
