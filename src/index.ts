@@ -2,7 +2,7 @@ import { SpriteLoader } from "./SpriteLoader.js";
 import { TileSelector } from "./TileSelector.js";
 import { GridEditor } from "./GridEditor.js"; // Assuming you've created a GridEditor.ts file
 
-const spriteSheetUrl = "../res/sprites_2.png";
+const spriteSheetUrl = "sprites_2.png";
 const tileSize = 28; // Use the size that matches your sprites
 const gridWidth = 100; // Choose a grid size that suits your needs
 const gridHeight = 100;
