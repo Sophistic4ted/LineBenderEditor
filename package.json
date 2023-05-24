@@ -2,10 +2,10 @@
   "name": "line-game-level-editor",
   "version": "1.0.0",
   "description": "",
-  "main": "index.js",
+  "main": "index.ts",
   "scripts": {
     "build": "tsc",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "postbuild": "copy base dist"
   },
   "keywords": [],
   "author": "",
