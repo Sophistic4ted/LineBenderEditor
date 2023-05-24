@@ -23,7 +23,7 @@ jobs:
       run: npm run build
 
     - name: Copy resources to dist
-      run: cp -r ./res ./dist
+      run: cp -r ./res/. ./dist/.
 
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
