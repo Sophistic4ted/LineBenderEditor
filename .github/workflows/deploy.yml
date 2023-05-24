@@ -22,11 +22,17 @@ jobs:
     - name: Build
       run: npm run build
 
-    - name: Copy files to dist
-      run: cp -r ./base/. ./dist/.
+    - name: Create base directory in dist
+      run: mkdir ./dist/base
+
+    - name: Copy base directory to dist
+      run: cp -r ./base/. ./dist/base/.
+
+    - name: Create res directory in dist
+      run: mkdir ./dist/res
 
     - name: Copy resources to dist
-      run: cp -r ./res/. ./dist/.
+      run: cp -r ./res/. ./dist/res.
 
     - name: Deploy
       uses: peaceiris/actions-gh-pages@v3
