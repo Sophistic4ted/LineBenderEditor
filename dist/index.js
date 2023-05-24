@@ -1,7 +1,7 @@
 import { TileSelector } from "./TileSelector.js";
 import { SpriteLoader } from "./SpriteLoader.js";
 // Load the sprites
-const spriteLoader = new SpriteLoader('../res/sprites_2.png', 28);
+const spriteLoader = new SpriteLoader('sprites_2.png', 28);
 spriteLoader.loadSprites([
     { id: 'G', xIndex: 0, yIndex: 0 },
     { id: 'B', xIndex: 0, yIndex: 1 },
