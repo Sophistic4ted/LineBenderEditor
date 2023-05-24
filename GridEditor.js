@@ -9,6 +9,8 @@ export class GridEditor {
     isDrawing;
     lines;
     currentLine;
+    lastMove = 0;
+    throttle = 100;
     constructor(spriteLoader, tileSelector, tileSize, gridWidth, gridHeight) {
         this.canvas = document.createElement('canvas');
         this.context = this.canvas.getContext('2d');
@@ -80,7 +82,17 @@ export class GridEditor {
                 const lastTile = this.currentLine.tiles[this.currentLine.tiles.length - 1];
                 const dx = gridX - lastTile.x;
                 const dy = gridY - lastTile.y;
-                if (dx !== 0 || dy !== 0) {
+                // Calculate the distance between the last tile and the current tile
+                const numIntermediateTiles = Math.abs(dx) + Math.abs(dy);
+                console.log(numIntermediateTiles);
+                // If the distance is greater than a certain threshold, cancel the current line
+                if (numIntermediateTiles > 2) {
+                    this.isDrawing = false;
+                    this.currentLine = null;
+                    alert("Whoa there, cowboy! You're going too fast!");
+                    return;
+                }
+                else if (dx !== 0 || dy !== 0) {
                     const xStep = dx !== 0 ? dx / Math.abs(dx) : 0;
                     const yStep = dy !== 0 ? dy / Math.abs(dy) : 0;
                     let currentX = lastTile.x;
