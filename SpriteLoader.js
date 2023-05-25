@@ -1,44 +1,48 @@
+import { TileType } from "./Tile.js";
+const spriteSheetUrl = "sprites_2.png";
+const tileSize = 28;
+const spriteData = [
+    { id: TileType.G, xIndex: 0, yIndex: 0 },
+    { id: TileType.B, xIndex: 0, yIndex: 1 },
+    { id: TileType.S, xIndex: 0, yIndex: 2 },
+    { id: TileType.D, xIndex: 0, yIndex: 4 },
+    { id: TileType.K, xIndex: 0, yIndex: 5 },
+    { id: TileType.W, xIndex: 0, yIndex: 6 }
+    // Add more tile types as needed
+];
+// keep track of the sprite keys
+const spriteKeys = {
+    [TileType.G]: 'G_key',
+    [TileType.B]: 'B_key',
+    [TileType.S]: 'S_key',
+    [TileType.D]: 'D_key',
+    [TileType.K]: 'K_key',
+    [TileType.W]: 'W_key',
+    // add more as needed
+};
 export class SpriteLoader {
-    spriteSheetUrl;
-    tileSize;
-    spriteSheet;
-    sprites;
-    constructor(spriteSheetUrl, tileSize) {
-        this.spriteSheetUrl = spriteSheetUrl;
-        this.tileSize = tileSize;
-        this.spriteSheet = new Image();
+    sprites; // will map TileType to sprite key
+    constructor() {
         this.sprites = new Map();
     }
-    loadSprites(spriteData) {
-        return new Promise((resolve, reject) => {
-            this.spriteSheet.onload = () => {
-                // Create a hidden canvas to draw and extract each sprite
-                const canvas = document.createElement('canvas');
-                canvas.width = this.tileSize;
-                canvas.height = this.tileSize;
-                const ctx = canvas.getContext('2d');
-                spriteData.forEach(({ id, xIndex, yIndex }) => {
-                    // Draw the sprite onto the canvas
-                    if (ctx) {
-                        ctx.drawImage(this.spriteSheet, xIndex * this.tileSize, yIndex * this.tileSize, this.tileSize, this.tileSize, 0, 0, this.tileSize, this.tileSize);
-                        // Create a new image from the canvas and store it in the map
-                        const img = new Image();
-                        img.src = canvas.toDataURL();
-                        this.sprites.set(id, img);
-                        // Clear the canvas for the next sprite
-                        ctx.clearRect(0, 0, canvas.width, canvas.height);
-                    }
-                });
-                resolve();
-            };
-            this.spriteSheet.onerror = reject;
-            this.spriteSheet.src = this.spriteSheetUrl;
+    preloadSprites(scene) {
+        const spritesPerRow = 7; // Replace this with the actual number of sprites per row
+        spriteData.forEach(({ id, xIndex, yIndex }) => {
+            const spriteKey = spriteKeys[id];
+            const frameIndex = yIndex * spritesPerRow + xIndex;
+            scene.load.spritesheet(spriteKey, spriteSheetUrl, {
+                frameWidth: tileSize,
+                frameHeight: tileSize,
+                startFrame: frameIndex,
+                endFrame: frameIndex
+            });
+            this.sprites.set(id, spriteKey);
         });
     }
-    getSprite(id) {
+    getSpriteKey(id) {
         return this.sprites.get(id);
     }
-    getSpriteMap() {
-        return this.sprites;
+    getTileTypes() {
+        return spriteData.map(data => data.id);
     }
 }

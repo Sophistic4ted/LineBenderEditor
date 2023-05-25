@@ -1,144 +1,86 @@
-export class GridEditor {
-    canvas;
-    context;
-    tileSize;
-    gridWidth;
-    gridHeight;
+import { Tile, TileType } from './Tile.js';
+import { SpriteLoader } from "./SpriteLoader.js";
+export class GridEditor extends Phaser.Scene {
     spriteLoader;
-    tileSelector;
-    isDrawing;
-    lines;
-    currentLine;
-    lastMove = 0;
-    throttle = 100;
-    constructor(spriteLoader, tileSelector, tileSize, gridWidth, gridHeight) {
-        this.canvas = document.createElement('canvas');
-        this.context = this.canvas.getContext('2d');
-        this.spriteLoader = spriteLoader;
-        this.tileSelector = tileSelector;
-        this.tileSize = tileSize;
-        this.gridWidth = gridWidth;
-        this.gridHeight = gridHeight;
-        this.isDrawing = false;
-        this.lines = [];
-        this.currentLine = null;
-        this.canvas.width = this.tileSize * this.gridWidth;
-        this.canvas.height = this.tileSize * this.gridHeight;
-        this.canvas.addEventListener('mousedown', this.onCanvasMouseDown.bind(this));
-        this.canvas.addEventListener('mousemove', this.onCanvasMouseMove.bind(this));
-        this.canvas.addEventListener('mouseup', this.onCanvasMouseUp.bind(this));
-        // Add the canvas to the document
-        document.getElementById('canvas-container')?.appendChild(this.canvas);
-        this.drawGrid();
-    }
-    drawGrid() {
-        for (let x = 0; x < this.gridWidth; x++) {
-            for (let y = 0; y < this.gridHeight; y++) {
-                this.context.strokeRect(x * this.tileSize, y * this.tileSize, this.tileSize, this.tileSize);
-            }
-        }
-    }
-    onCanvasMouseDown(event) {
-        this.isDrawing = true;
-        this.currentLine = {
-            tiles: [],
+    currentLine = null;
+    tileSize = 28;
+    gridTileSize = { width: 200, height: 200 };
+    isDragging = false;
+    dragPosition = new Phaser.Math.Vector2();
+    worldBounds;
+    constructor() {
+        super({ key: 'GridEditor' });
+        this.spriteLoader = new SpriteLoader();
+        this.worldBounds = {
+            x: this.gridTileSize.width * this.tileSize,
+            y: this.gridTileSize.height * this.tileSize
         };
-        this.updateLineTiles(event);
     }
-    onCanvasMouseMove(event) {
-        if (this.isDrawing) {
-            this.updateLineTiles(event);
+    preload() {
+        this.spriteLoader.preloadSprites(this);
+    }
+    create() {
+        this.input.on('pointerdown', this.handleMouseDown, this);
+        this.input.on('pointermove', this.handleMouseMove, this);
+        this.input.on('pointerup', this.handleMouseUp, this);
+        this.input.on('wheel', this.handleMouseWheel, this);
+        this.add.grid(0, 0, this.gridTileSize.width * this.tileSize, this.gridTileSize.height * this.tileSize, this.tileSize, this.tileSize, 0x1a1a1a);
+    }
+    handleMouseDown(pointer) {
+        if (pointer.middleButtonDown()) {
+            this.isDragging = true;
+            this.dragPosition.set(pointer.x, pointer.y);
+        }
+        else if (pointer.leftButtonDown()) {
+            this.createTileAt(pointer.worldX, pointer.worldY, TileType.G);
         }
     }
-    onCanvasMouseUp() {
-        this.isDrawing = false;
-        if (this.currentLine && this.currentLine.tiles.length > 0) {
-            this.lines.push(this.currentLine);
+    handleMouseMove(pointer) {
+        if (this.isDragging) {
+            const deltaX = pointer.x - this.dragPosition.x;
+            const deltaY = pointer.y - this.dragPosition.y;
+            let newScrollX = this.cameras.main.scrollX - deltaX;
+            let newScrollY = this.cameras.main.scrollY - deltaY;
+            const maxScrollX = this.worldBounds.x - this.cameras.main.width / this.cameras.main.zoom;
+            const maxScrollY = this.worldBounds.y - this.cameras.main.height / this.cameras.main.zoom;
+            newScrollX = Phaser.Math.Clamp(newScrollX, 0, maxScrollX);
+            newScrollY = Phaser.Math.Clamp(newScrollY, 0, maxScrollY);
+            this.cameras.main.setScroll(newScrollX, newScrollY);
+            this.dragPosition.set(pointer.x, pointer.y);
+        }
+        else if (pointer.isDown) {
+            this.createTileAt(pointer.x, pointer.y, TileType.G);
+        }
+    }
+    handleMouseUp(pointer) {
+        if (pointer.middleButtonReleased()) {
+            this.isDragging = false;
         }
         this.currentLine = null;
     }
-    updateLineTiles(event) {
-        const rect = this.canvas.getBoundingClientRect();
-        const x = event.clientX - rect.left;
-        const y = event.clientY - rect.top;
+    handleMouseWheel(pointer, gameObjects, deltaX, deltaY, deltaZ) {
+        let newZoom = this.cameras.main.zoom - deltaY * 0.001; // change this to smaller value for smoother zoom
+        newZoom = Phaser.Math.Clamp(newZoom, 0.3, 1.3);
+        this.tweens.add({
+            targets: this.cameras.main,
+            zoom: newZoom,
+            duration: 200,
+            ease: 'Linear' // adjust for style of zoom
+        });
+    }
+    createTileAt(clientX, clientY, tileType) {
+        const { x, y } = this.cameras.main.getWorldPoint(clientX, clientY);
         const gridX = Math.floor(x / this.tileSize);
         const gridY = Math.floor(y / this.tileSize);
-        const sprite = this.spriteLoader.getSprite(this.tileSelector.getSelectedTile());
-        if (sprite) {
-            this.context.drawImage(sprite, gridX * this.tileSize, gridY * this.tileSize, this.tileSize, this.tileSize);
-        }
-        const tile = {
-            x: gridX,
-            y: gridY,
-            tile: this.tileSelector.getSelectedTile(),
-            neighbors: [
-                ['', '', ''],
-                ['', '', ''],
-                ['', '', ''],
-            ],
-        };
-        if (this.currentLine) {
-            if (this.currentLine.tiles.length > 0) {
-                const lastTile = this.currentLine.tiles[this.currentLine.tiles.length - 1];
-                const dx = gridX - lastTile.x;
-                const dy = gridY - lastTile.y;
-                // Calculate the distance between the last tile and the current tile
-                const numIntermediateTiles = Math.abs(dx) + Math.abs(dy);
-                console.log(numIntermediateTiles);
-                // If the distance is greater than a certain threshold, cancel the current line
-                if (numIntermediateTiles > 2) {
-                    this.isDrawing = false;
-                    this.currentLine = null;
-                    alert("Whoa there, cowboy! You're going too fast!");
-                    return;
-                }
-                else if (dx !== 0 || dy !== 0) {
-                    const xStep = dx !== 0 ? dx / Math.abs(dx) : 0;
-                    const yStep = dy !== 0 ? dy / Math.abs(dy) : 0;
-                    let currentX = lastTile.x;
-                    let currentY = lastTile.y;
-                    while (currentX !== gridX || currentY !== gridY) {
-                        currentX += xStep;
-                        currentY += yStep;
-                        const intermediateTile = { ...tile, x: currentX, y: currentY }; // Copy the current tile, but with updated x, y
-                        this.updateTileNeighbors(lastTile, intermediateTile);
-                        this.currentLine.tiles.push(intermediateTile);
-                    }
-                }
-                this.updateTileNeighbors(lastTile, tile);
-            }
-            this.currentLine.tiles.push(tile);
+        if (gridX >= 0 && gridX < this.gridTileSize.width && gridY >= 0 && gridY < this.gridTileSize.height) {
+            const tile = new Tile(tileType, { x: gridX, y: gridY });
+            this.createTileSprite(tile);
         }
     }
-    updateTileNeighbors(lastTile, tile) {
-        const dx = tile.x - lastTile.x;
-        const dy = tile.y - lastTile.y;
-        // Update neighbor information
-        if (dx === 0) {
-            // Vertical movement
-            if (dy > 0) {
-                // Downward movement
-                lastTile.neighbors[2][1] = tile.tile;
-                tile.neighbors[0][1] = lastTile.tile;
-            }
-            else {
-                // Upward movement
-                lastTile.neighbors[0][1] = tile.tile;
-                tile.neighbors[2][1] = lastTile.tile;
-            }
-        }
-        else if (dy === 0) {
-            // Horizontal movement
-            if (dx > 0) {
-                // Rightward movement
-                lastTile.neighbors[1][2] = tile.tile;
-                tile.neighbors[1][0] = lastTile.tile;
-            }
-            else {
-                // Leftward movement
-                lastTile.neighbors[1][0] = tile.tile;
-                tile.neighbors[1][2] = lastTile.tile;
-            }
+    createTileSprite(tile) {
+        const spriteKey = this.spriteLoader.getSpriteKey(tile.type);
+        if (spriteKey) {
+            const sprite = this.add.image(tile.location.x * this.tileSize, tile.location.y * this.tileSize, spriteKey).setOrigin(0, 0).setDepth(1);
         }
     }
 }
