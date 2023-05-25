@@ -1,5 +1,6 @@
 {
     "compilerOptions": {
+      "types": ["phaser"],
       "moduleResolution": "node",
       "preserveConstEnums": true,
       "strict": true,

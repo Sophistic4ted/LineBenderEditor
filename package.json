@@ -5,7 +5,7 @@
   "main": "index.ts",
   "scripts": {
     "build": "tsc",
-    "test":  "tsc",
+    "test": "tsc",
     "posttest": "copy base dist && copy res dist"
   },
   "keywords": [],
@@ -13,5 +13,8 @@
   "license": "ISC",
   "devDependencies": {
     "typescript": "^5.0.4"
+  },
+  "dependencies": {
+    "phaser": "^3.60.0"
   }
 }
