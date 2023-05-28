@@ -41,6 +41,16 @@ export class GridEditor extends Phaser.Scene {
         this.input.on('pointermove', this.toolHandler.handlePointerMove.bind(this.toolHandler));
         this.input.on('pointerup', this.toolHandler.handlePointerUp.bind(this.toolHandler));
         this.scale.on('resize', this.handleResize, this);
+        this.input.keyboard?.on('keydown-C', async () => {
+            const textToCopy = 'Hello, world!';
+            try {
+                await navigator.clipboard.writeText(textToCopy);
+                console.log('Text copied to clipboard');
+            }
+            catch (err) {
+                console.error('Error in copying text: ', err);
+            }
+        });
         eventsCenter.on('update-tool', this.updateTool, this);
         this.add.grid(0, 0, this.worldBounds.x, this.worldBounds.y, this.tileSize, this.tileSize, 0x1a1a1a).setOrigin(0); // Set grid's origin to the top-left corner
         this.cameras.main.setViewport(this.menuWidth, 0, this.scale.width - this.menuWidth, this.scale.height);
