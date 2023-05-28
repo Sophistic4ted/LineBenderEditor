@@ -171,6 +171,14 @@ export class GridEditor extends Phaser.Scene {
                     this.addToBeginning = true;
                 }
             }
+            if (this.tempLine !== undefined && tile.getLine() !== this.tempLine && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined)) {
+                const tileLine = tile.getLine();
+                if (tileLine !== undefined) {
+                    this.lines[this.tempLine].push(...this.lines[tileLine]);
+                    delete this.lines[tileLine];
+                    this.updateSprite(tile);
+                }
+            }
             if (tile.getLine() !== undefined) {
                 if (!isStart && this.tempLine === undefined && this.lineCounter !== tile.getLine()) {
                     this.isDrawing = false;
@@ -199,8 +207,7 @@ export class GridEditor extends Phaser.Scene {
         if (this.isDrawing) {
             const line = this.tempLine !== undefined ? this.tempLine : this.lineCounter;
             this.tiles[y][x].setLine(line);
-            // if(!this.isCorrectMovement(x, y)) {
-            //   this.tiles[y][x].setLine(undefined);
+            // if (!this.isCorrectMovement(x, y)) {
             //   return
             // }
             while (this.lines[line] === undefined) {
@@ -372,11 +379,19 @@ export class GridEditor extends Phaser.Scene {
         let maxX = Number.MIN_SAFE_INTEGER;
         let maxY = Number.MIN_SAFE_INTEGER;
         let deletedLines = 0;
-        this.lines.forEach(line => {
-            if (line.length === 0) {
-                deletedLines++;
-            }
-        });
+        const playerTile = this.tiles[this.player.location.y][this.player.location.x];
+        const playerLineOrig = playerTile.getLine();
+        let playerLine = 0;
+        if (playerLineOrig !== undefined) {
+            this.lines.forEach((line, index) => {
+                if (line.length === 0) {
+                    if (index < playerLineOrig) {
+                        deletedLines++;
+                    }
+                }
+                playerLine = playerLineOrig - deletedLines;
+            });
+        }
         const lines = this.lines.filter(n => n.length > 0);
         lines.forEach(line => {
             line.forEach(tile => {
@@ -391,12 +406,6 @@ export class GridEditor extends Phaser.Scene {
             });
         });
         let padding = 2;
-        const playerTile = this.tiles[this.player.location.y][this.player.location.x];
-        const playerLineOrig = playerTile.getLine();
-        let playerLine = 0;
-        if (playerLineOrig !== undefined) {
-            playerLine = playerLineOrig - deletedLines;
-        }
         let playerTileIndex = 0;
         if (playerLine !== undefined) {
             playerTileIndex = lines[playerLine].indexOf(playerTile);
