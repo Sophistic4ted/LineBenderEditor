@@ -12,17 +12,42 @@ export var TileType;
     TileType[TileType["W"] = 2] = "W";
     TileType[TileType["S"] = 3] = "S";
     TileType[TileType["K"] = 4] = "K";
-    TileType[TileType["D"] = 5] = "D";
+    TileType[TileType["OD"] = 5] = "OD";
+    TileType[TileType["CD"] = 6] = "CD";
+    TileType[TileType["T"] = 7] = "T";
+    TileType[TileType["None"] = 8] = "None";
 })(TileType || (TileType = {}));
+(function (Direction) {
+    Direction["North"] = "North";
+    Direction["South"] = "South";
+    Direction["East"] = "East";
+    Direction["West"] = "West";
+})(Direction || (Direction = {}));
 export class Tile {
     type;
     location;
+    line;
+    sprite;
     nextTileDirection;
     previousTileDirection;
-    constructor(type, location, nextTileDirection, previousTileDirection) {
+    constructor(type, location, line, sprite, nextTileDirection, previousTileDirection) {
         this.type = type;
         this.location = location;
+        this.line = line;
+        this.sprite = sprite;
         this.nextTileDirection = nextTileDirection;
         this.previousTileDirection = previousTileDirection;
+    }
+    setType(type) {
+        this.type = type;
+    }
+    setSprite(sprite) {
+        this.sprite = sprite;
+    }
+    setLine(line) {
+        this.line = line;
+    }
+    getLine() {
+        return this.line;
     }
 }
