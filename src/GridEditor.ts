@@ -3,6 +3,7 @@ import { TileSelector } from "./TileSelector.js";
 import eventsCenter from "./EventsCenter.js";
 import { TileType, Tile, Direction } from "./Tile.js";
 import { ToolHandler } from "./ToolHandler.js";
+import { Player } from "./Player.js";
 
 export class GridEditor extends Phaser.Scene {
   public tileSize: number = 28;
@@ -22,8 +23,7 @@ export class GridEditor extends Phaser.Scene {
   private lines: Array<Array<Tile>> = [];
   public incrementLines: boolean = true;
   public addToBeginning: boolean = false;
-  lineHues: number[] = []
-
+  public player: Player = new Player({ x: 0, y: 0 }, undefined);
   constructor() {
     super({ key: 'GridEditor' });
     this.worldBounds = {
@@ -51,7 +51,7 @@ export class GridEditor extends Phaser.Scene {
     this.scale.on('resize', this.handleResize, this);
 
     this.input.keyboard?.on('keydown-C', async () => {
-      const textToCopy = 'Hello, world!';
+      const textToCopy = this.exportLines();
       try {
         await navigator.clipboard.writeText(textToCopy);
         console.log('Text copied to clipboard');
@@ -304,6 +304,17 @@ export class GridEditor extends Phaser.Scene {
     this.tiles[y][x].sprite = sprite;
   }
 
+  placePlayer(x: number, y: number) {
+    this.player.location.x = x;
+    this.player.location.y = y;
+    this.player.sprite = this.add.sprite(x * this.tileSize + this.tileSize / 2, y * this.tileSize + this.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameById(TileType.P)).setOrigin(0.5);
+  }
+
+  removePlayer(x: number, y: number) {
+    this.player.sprite?.destroy();  // remove sprite from scene
+    this.player.sprite = undefined;  // remove sprite reference
+  }
+
   removeAt(x: number, y: number) {
     if (!this.isWithinBounds(x, y)) {
       console.error("Attempted to remove tile out of grid bounds");
@@ -360,8 +371,6 @@ export class GridEditor extends Phaser.Scene {
       newLine.forEach(tile => tile.line = this.lines.length - 1);
     }
   }
-
-
 
   private handleMouseDown(pointer: Phaser.Input.Pointer) {
     const camera = this.cameras.main;
@@ -424,5 +433,68 @@ export class GridEditor extends Phaser.Scene {
 
   private handleResize(gameSize: Phaser.Structs.Size, baseSize: Phaser.Structs.Size, displaySize: Phaser.Structs.Size, resolution: number) {
     this.cameras.main.setViewport(this.menuWidth, 0, gameSize.width - this.menuWidth, gameSize.height);    // ...
+  }
+
+  private exportLines(): string {
+    let minX: number = Number.MAX_SAFE_INTEGER;
+    let minY: number = Number.MAX_SAFE_INTEGER;
+    let maxX: number = Number.MIN_SAFE_INTEGER;
+    let maxY: number = Number.MIN_SAFE_INTEGER;
+    this.lines.filter(n => n)
+    this.lines.forEach(line => {
+      line.forEach(tile => {
+        if (tile.location.x < minX) minX = tile.location.x;
+        if (tile.location.y < minY) minY = tile.location.y;
+        if (tile.location.x > maxX) maxX = tile.location.x;
+        if (tile.location.y > maxY) maxY = tile.location.y;
+      });
+    });
+    let padding = 2;
+    let output: string = `${this.lines.length} ${this.player.location.x} ${this.player.location.y} D\n`;
+    output += `${-padding} ${-padding} ${maxX - minX + padding} ${maxY - minY + padding}\n`;
+    this.lines.forEach(line => {
+
+      output += `${line.length + 1} `;
+
+      line.forEach((tile, index) => {
+        const normalizedX = tile.location.x - minX;
+        const normalizedY = tile.location.y - minY;
+
+        const gridPosition = `${normalizedX} ${normalizedY}`;
+
+        let direction;
+        switch (tile.nextTileDirection) {
+          case Direction.North:
+            direction = 'U';
+            break;
+          case Direction.South:
+            direction = 'D';
+            break;
+          case Direction.East:
+            direction = 'R';
+            break;
+          case Direction.West:
+            direction = 'L';
+            break;
+          default:
+            direction = '';
+            break;
+        }
+
+        const tileType = TileType[tile.type]
+
+        // For the last tile, exclude the direction of the next tile
+        if (index === 0) {
+          output += `${gridPosition} ${direction}${tileType} `
+        }
+        if (index === line.length - 1) {
+          output += `${tileType}\n`;
+        } else {
+          output += `${direction}${tileType} `;
+        }
+      });
+    });
+
+    return output;
   }
 }
