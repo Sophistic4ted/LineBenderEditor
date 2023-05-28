@@ -1,5 +1,5 @@
 export enum Direction { U, R, D, L }
-export enum TileType { G, B, W, S, K, CD, T, None }
+export enum TileType { G, B, W, S, K, C, T, P, None }
 export enum Direction {
     North = 'North',
     South = 'South',

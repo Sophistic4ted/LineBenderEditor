@@ -63,6 +63,10 @@ export class ToolHandler {
                 break;
             case 'T':
                 this.gridEditor.removeAt(x, y);
+            case 'P':
+                this.gridEditor.player.location = { x, y };
+                this.gridEditor.removePlayer(x, y);
+                this.gridEditor.placePlayer(x, y);
         }
     }
 

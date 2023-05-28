@@ -450,7 +450,13 @@ export class GridEditor extends Phaser.Scene {
       });
     });
     let padding = 2;
-    let output: string = `${this.lines.length} ${this.player.location.x} ${this.player.location.y} D\n`;
+    const playerTile = this.tiles[this.player.location.y][this.player.location.x];
+    const playerLine = playerTile.getLine();
+    let playerTileIndex = 0;
+    if(playerLine !== undefined) {
+      playerTileIndex = this.lines[playerLine].indexOf(playerTile);
+    }
+    let output: string = `${this.lines.length} ${playerLine} ${playerTileIndex} D\n`;
     output += `${-padding} ${-padding} ${maxX - minX + padding} ${maxY - minY + padding}\n`;
     this.lines.forEach(line => {
 
