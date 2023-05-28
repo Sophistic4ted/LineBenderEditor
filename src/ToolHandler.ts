@@ -4,7 +4,7 @@ import { GridEditor } from "./GridEditor.js";
 export class ToolHandler {
     private currentTool: TileType = TileType.None
     private gridEditor: GridEditor;
-
+    
     constructor(gridEditor: GridEditor) {
         this.gridEditor = gridEditor;
     }
@@ -16,19 +16,21 @@ export class ToolHandler {
     public handlePointerDown(pointer: Phaser.Input.Pointer) {
         console.log(this.gridEditor.lineCounter)        
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer)) {
-            this.useTool(pointer);
+            this.useTool(pointer, true);
         }
     }
 
     public handlePointerMove(pointer: Phaser.Input.Pointer) {
+        if (!this.gridEditor.isDrawing) return;
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
+            console.log(this.gridEditor.isDrawing)
             this.useTool(pointer);
         }
     }
 
     public handlePointerUp(pointer: Phaser.Input.Pointer) {
         if (pointer.leftButtonReleased() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
-            if (this.gridEditor.isDrawing && this.gridEditor.incrementLines) {
+            if (this.gridEditor.incrementLines) {
                 this.gridEditor.lineCounter++;
             }
             this.gridEditor.incrementLines = true;
@@ -38,7 +40,7 @@ export class ToolHandler {
         console.log(this.gridEditor.lineCounter)        
     }
 
-    private useTool(pointer: Phaser.Input.Pointer) {
+    private useTool(pointer: Phaser.Input.Pointer, isStart = false) {
         const camera = this.gridEditor.cameras.main;
 
         if (pointer.x < camera.x || pointer.x > camera.x + camera.width || pointer.y < camera.y || pointer.y > camera.y + camera.height) {
@@ -58,7 +60,7 @@ export class ToolHandler {
             case 'OD':
             case 'CD':
                 this.gridEditor.isDrawing = true;
-                this.gridEditor.placeAt(x, y, this.currentTool);
+                this.gridEditor.placeAt(x, y, this.currentTool, isStart);
                 break;
             case 'T':
                 this.gridEditor.removeAt(x, y);
