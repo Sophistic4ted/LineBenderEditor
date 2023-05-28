@@ -12,9 +12,10 @@ export var TileType;
     TileType[TileType["W"] = 2] = "W";
     TileType[TileType["S"] = 3] = "S";
     TileType[TileType["K"] = 4] = "K";
-    TileType[TileType["CD"] = 5] = "CD";
+    TileType[TileType["C"] = 5] = "C";
     TileType[TileType["T"] = 6] = "T";
-    TileType[TileType["None"] = 7] = "None";
+    TileType[TileType["P"] = 7] = "P";
+    TileType[TileType["None"] = 8] = "None";
 })(TileType || (TileType = {}));
 (function (Direction) {
     Direction["North"] = "North";

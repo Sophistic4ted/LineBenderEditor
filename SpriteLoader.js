@@ -14,10 +14,10 @@ const spriteData = [
     { id: "SWN", xIndex: 1, yIndex: 2 },
     { id: "SUU", xIndex: 2, yIndex: 2 },
     { id: "SUN", xIndex: 3, yIndex: 2 },
-    { id: "CD", xIndex: 0, yIndex: 4 },
-    { id: "CDWN", xIndex: 1, yIndex: 4 },
-    { id: "CDUU", xIndex: 2, yIndex: 4 },
-    { id: "CDUN", xIndex: 3, yIndex: 4 },
+    { id: "C", xIndex: 0, yIndex: 4 },
+    { id: "CWN", xIndex: 1, yIndex: 4 },
+    { id: "CUU", xIndex: 2, yIndex: 4 },
+    { id: "CUN", xIndex: 3, yIndex: 4 },
     { id: "K", xIndex: 0, yIndex: 5 },
     { id: "KWN", xIndex: 1, yIndex: 5 },
     { id: "KUU", xIndex: 2, yIndex: 5 },
@@ -26,7 +26,8 @@ const spriteData = [
     { id: "WWN", xIndex: 1, yIndex: 6 },
     { id: "WUU", xIndex: 2, yIndex: 6 },
     { id: "WUN", xIndex: 3, yIndex: 6 },
-    { id: "T", xIndex: 0, yIndex: 7 }
+    { id: "T", xIndex: 0, yIndex: 7 },
+    { id: "P", xIndex: 4, yIndex: 1 }
 ];
 // Create a map of TileType to frame index
 const spriteIndices = new Map(spriteData.map(({ id, xIndex, yIndex }) => [id, yIndex * rowNumber + xIndex]));
