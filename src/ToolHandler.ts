@@ -14,7 +14,6 @@ export class ToolHandler {
     }
 
     public handlePointerDown(pointer: Phaser.Input.Pointer) {
-        console.log(this.gridEditor.lineCounter)        
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer)) {
             this.useTool(pointer, true);
         }
@@ -22,7 +21,6 @@ export class ToolHandler {
 
     public handlePointerMove(pointer: Phaser.Input.Pointer) {
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
-            console.log(this.gridEditor.isDrawing)
             this.useTool(pointer);
         }
     }
@@ -36,7 +34,6 @@ export class ToolHandler {
             this.gridEditor.isDrawing = false;
             this.gridEditor.tempLine = undefined;
         }
-        console.log(this.gridEditor.lineCounter)        
     }
 
     private useTool(pointer: Phaser.Input.Pointer, isStart = false) {

@@ -89,11 +89,12 @@ export class GridEditor extends Phaser.Scene {
   }
 
   placeAt(x: number, y: number, type: TileType, isStart: boolean = false) {
-      if (this.tiles[y][x].sprite === undefined) {
-        this.processEmptyField(x, y, type);
-      } else {
-        this.processOccupiedField(y, x, type, isStart);
-      }
+    if (this.tiles[y][x].sprite === undefined) {
+      this.processEmptyField(x, y, type);
+    } else {
+      this.processOccupiedField(y, x, type, isStart);
+    }
+    console.log(this.lines)
   }
 
   isCorrectMovement(x: number, y: number): boolean {
@@ -112,7 +113,7 @@ export class GridEditor extends Phaser.Scene {
           return false;
         }
       }
-    }   
+    }
     return true;
   }
 
@@ -181,7 +182,7 @@ export class GridEditor extends Phaser.Scene {
   private processOccupiedField(y: number, x: number, type: TileType, isStart: boolean = false) {
     if (this.tiles[y][x].type !== type) {
       this.processFieldWithDifferentSprite(y, x, type);
-    } else if (isStart && this.tiles[y][x].nextTileDirection === undefined && this.isDrawing && this.tempLine === undefined) {
+    } else if (isStart && (this.tiles[y][x].previousTileDirection === undefined || this.tiles[y][x].nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
       this.incrementLines = false;
       this.tempLine = this.tiles[y][x].getLine();
     } else if (this.tiles[y][x].nextTileDirection !== undefined && !isStart) {
@@ -300,6 +301,8 @@ export class GridEditor extends Phaser.Scene {
     this.lines[lineIndex].splice(tileIndex, 1);
 
     tile.setType(TileType.None);
+    tile.setNextTileDirection(undefined);
+    tile.setPreviousTileDirection(undefined);
     tile.sprite?.destroy();  // remove sprite from scene
     tile.sprite = undefined;  // remove sprite reference
 
