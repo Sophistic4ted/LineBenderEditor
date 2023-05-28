@@ -50,6 +50,15 @@ export class GridEditor extends Phaser.Scene {
 
     this.scale.on('resize', this.handleResize, this);
 
+    this.input.keyboard?.on('keydown-C', async () => {
+      const textToCopy = 'Hello, world!';
+      try {
+          await navigator.clipboard.writeText(textToCopy);
+          console.log('Text copied to clipboard');
+      } catch (err) {
+          console.error('Error in copying text: ', err);
+      }
+  });
 
     eventsCenter.on('update-tool', this.updateTool, this)
     this.add.grid(
