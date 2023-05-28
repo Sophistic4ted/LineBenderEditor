@@ -46,7 +46,6 @@ export class GridEditor extends Phaser.Scene {
             const textToCopy = this.exportLines();
             try {
                 await navigator.clipboard.writeText(textToCopy);
-                console.log('Text copied to clipboard');
             }
             catch (err) {
                 console.error('Error in copying text: ', err);
@@ -83,7 +82,6 @@ export class GridEditor extends Phaser.Scene {
         else {
             this.processOccupiedField(y, x, type, isStart);
         }
-        console.log(this.lines);
     }
     isCorrectMovement(x, y) {
         const line = this.tiles[y][x].getLine();
@@ -373,8 +371,14 @@ export class GridEditor extends Phaser.Scene {
         let minY = Number.MAX_SAFE_INTEGER;
         let maxX = Number.MIN_SAFE_INTEGER;
         let maxY = Number.MIN_SAFE_INTEGER;
-        this.lines.filter(n => n);
+        let deletedLines = 0;
         this.lines.forEach(line => {
+            if (line.length === 0) {
+                deletedLines++;
+            }
+        });
+        const lines = this.lines.filter(n => n.length > 0);
+        lines.forEach(line => {
             line.forEach(tile => {
                 if (tile.location.x < minX)
                     minX = tile.location.x;
@@ -388,14 +392,18 @@ export class GridEditor extends Phaser.Scene {
         });
         let padding = 2;
         const playerTile = this.tiles[this.player.location.y][this.player.location.x];
-        const playerLine = playerTile.getLine();
+        const playerLineOrig = playerTile.getLine();
+        let playerLine = 0;
+        if (playerLineOrig !== undefined) {
+            playerLine = playerLineOrig - deletedLines;
+        }
         let playerTileIndex = 0;
         if (playerLine !== undefined) {
-            playerTileIndex = this.lines[playerLine].indexOf(playerTile);
+            playerTileIndex = lines[playerLine].indexOf(playerTile);
         }
-        let output = `${this.lines.length} ${playerLine} ${playerTileIndex} D\n`;
+        let output = `${lines.length} ${playerLine} ${playerTileIndex} D\n`;
         output += `${-padding} ${-padding} ${maxX - minX + padding} ${maxY - minY + padding}\n`;
-        this.lines.forEach(line => {
+        lines.forEach(line => {
             output += `${line.length} `;
             line.forEach((tile, index) => {
                 const normalizedX = tile.location.x - minX;
