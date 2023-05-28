@@ -53,12 +53,12 @@ export class GridEditor extends Phaser.Scene {
     this.input.keyboard?.on('keydown-C', async () => {
       const textToCopy = 'Hello, world!';
       try {
-          await navigator.clipboard.writeText(textToCopy);
-          console.log('Text copied to clipboard');
+        await navigator.clipboard.writeText(textToCopy);
+        console.log('Text copied to clipboard');
       } catch (err) {
-          console.error('Error in copying text: ', err);
+        console.error('Error in copying text: ', err);
       }
-  });
+    });
 
     eventsCenter.on('update-tool', this.updateTool, this)
     this.add.grid(
@@ -189,14 +189,23 @@ export class GridEditor extends Phaser.Scene {
   }
 
   private processOccupiedField(y: number, x: number, type: TileType, isStart: boolean = false) {
-    if (this.tiles[y][x].type !== type) {
-      this.processFieldWithDifferentSprite(y, x, type);
-    }
-    if (isStart && (this.tiles[y][x].previousTileDirection === undefined || this.tiles[y][x].nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
-      this.incrementLines = false;
-      this.tempLine = this.tiles[y][x].getLine();
-      if (this.tiles[y][x].previousTileDirection === undefined) {
-        this.addToBeginning = true;
+    const tile = this.tiles[y][x];
+    if (tile !== undefined) {
+      if (tile.type !== type) {
+        this.processFieldWithDifferentSprite(y, x, type);
+      }
+      if (isStart && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
+        this.incrementLines = false;
+        this.tempLine = tile.getLine();
+        if (tile.previousTileDirection === undefined) {
+          this.addToBeginning = true;
+        }
+      }
+      if (tile.getLine() !== undefined) {
+
+        if (!isStart && this.lineCounter !== tile.getLine()) {
+          this.isDrawing = false;
+        }
       }
     }
   }
@@ -258,7 +267,7 @@ export class GridEditor extends Phaser.Scene {
           this.tiles[y][x].setPreviousTileDirection(this.oppositeDirection(direction));
         }
       }
-      if(this.addToBeginning) {
+      if (this.addToBeginning) {
         const nextTile = this.lines[line][1];
         const direction = this.getDirection({ x: x, y: y }, nextTile.location);
         if (direction) {

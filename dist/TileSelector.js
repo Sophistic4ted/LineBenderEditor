@@ -1,4 +1,5 @@
 import { SpriteLoader } from "./SpriteLoader.js";
+import { TileType } from "./Tile.js";
 import eventsCenter from "./EventsCenter.js";
 export class TileSelector extends Phaser.Scene {
     spriteLoader;
@@ -9,7 +10,7 @@ export class TileSelector extends Phaser.Scene {
     constructor() {
         super({ key: 'TileSelector' });
         this.spriteLoader = new SpriteLoader();
-        this.tileTypes = this.spriteLoader.getTileTypes();
+        this.tileTypes = [TileType.G, TileType.B, TileType.W, TileType.S, TileType.K, TileType.CD, TileType.T];
     }
     preload() {
         this.spriteLoader.preloadSprites(this);
@@ -28,7 +29,7 @@ export class TileSelector extends Phaser.Scene {
         let xPosition = padding; // starting x position
         let countX = 0; // count of sprites in the current row
         this.tileTypes.forEach((tileType, index) => {
-            const spriteFrame = this.spriteLoader.getSpriteFrame(tileType);
+            const spriteFrame = this.spriteLoader.getSpriteFrameById(tileType);
             // Create a shadow sprite with a dark tint and an offset
             let shadow = this.add.sprite(xPosition + 3 + spriteSize / 2, yPosition + 3 + spriteSize / 2, 'spritesheet', spriteFrame)
                 .setOrigin(0.5, 0.5) // Change origin to the center

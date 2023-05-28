@@ -39,7 +39,7 @@ export class Tile {
         this.line = line;
     }
 
-    getLine() {
+    getLine() : number | undefined{
         return this.line;
     }
 
