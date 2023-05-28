@@ -15,8 +15,6 @@ export class ToolHandler {
         }
     }
     handlePointerMove(pointer) {
-        if (!this.gridEditor.isDrawing)
-            return;
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
             console.log(this.gridEditor.isDrawing);
             this.useTool(pointer);
