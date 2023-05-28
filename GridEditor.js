@@ -424,7 +424,7 @@ export class GridEditor extends Phaser.Scene {
                 if (index === 0) {
                     output += `${gridPosition} ${direction}${tileType} `;
                 }
-                if (index === line.length - 1) {
+                else if (index === line.length - 1) {
                     output += `${tileType}\n`;
                 }
                 else {
