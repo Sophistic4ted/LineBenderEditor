@@ -202,8 +202,7 @@ export class GridEditor extends Phaser.Scene {
         }
       }
       if (tile.getLine() !== undefined) {
-
-        if (!isStart && this.lineCounter !== tile.getLine()) {
+        if (!isStart && this.tempLine === undefined && this.lineCounter !== tile.getLine()) {
           this.isDrawing = false;
         }
       }
