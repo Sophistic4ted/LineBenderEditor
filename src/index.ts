@@ -1,16 +1,26 @@
 import { TileSelector } from "./TileSelector.js";
 import { GridEditor } from "./GridEditor.js";
+import { SpriteLoader } from "./SpriteLoader.js";
 import { TileType } from "./Tile.js";
 
-const config: Phaser.Types.Core.GameConfig = {
-  type: Phaser.AUTO,
-  parent: 'canvas-container',
-  scale: {
-    mode: Phaser.Scale.RESIZE, // scales the game to fit the parent div
-    autoCenter: Phaser.Scale.CENTER_BOTH, // centers the game within the div
-  },
-  scene: [GridEditor],
-};
+window.onload = () => {
+  const config: Phaser.Types.Core.GameConfig = {
+      type: Phaser.AUTO,
+      pixelArt: true,
+      scale: {
+        mode: Phaser.Scale.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+      },
+      scene: {
+          preload: function() {
+            new SpriteLoader().preloadSprites(this);
+          },
+          create: function() {
+              this.scene.add('TileSelector', TileSelector, true);
+              this.scene.add('GridEditor', GridEditor, true);
+          }
+      },
+  };
 
-const game = new Phaser.Game(config);
-game.scene.start('GridEditor');
+  const game = new Phaser.Game(config);
+}
