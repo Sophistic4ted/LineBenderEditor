@@ -492,8 +492,7 @@ export class GridEditor extends Phaser.Scene {
         // For the last tile, exclude the direction of the next tile
         if (index === 0) {
           output += `${gridPosition} ${direction}${tileType} `
-        }
-        if (index === line.length - 1) {
+        } else if (index === line.length - 1) {
           output += `${tileType}\n`;
         } else {
           output += `${direction}${tileType} `;
