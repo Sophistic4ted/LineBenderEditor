@@ -19,6 +19,10 @@ export class Tile {
             this.type = type;
         }
 
+        getType() {
+            return this.type;
+        }
+        
         setSprite(sprite: Phaser.GameObjects.Sprite | undefined) {
             this.sprite = sprite;
         }

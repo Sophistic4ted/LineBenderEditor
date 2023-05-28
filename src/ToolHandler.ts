@@ -14,31 +14,28 @@ export class ToolHandler {
     }
 
     public handlePointerDown(pointer: Phaser.Input.Pointer) {
-        console.log('pointer down')
-        if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
-            this.gridEditor.isDrawing = true;
+        console.log(this.gridEditor.lineCounter)        
+        if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer)) {
             this.useTool(pointer);
         }
     }
 
     public handlePointerMove(pointer: Phaser.Input.Pointer) {
-        console.log('pointer move')
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
             this.useTool(pointer);
         }
     }
 
     public handlePointerUp(pointer: Phaser.Input.Pointer) {
-        console.log('pointer up')
         if (pointer.leftButtonReleased() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
-            console.log(this.gridEditor.isDrawing)
-            if (!this.gridEditor.isDrawing && this.gridEditor.tempLine === undefined) {
-                console.log('incrementing line counter' + this.gridEditor.lineCounter)
-                this.gridEditor.lineCounter++
+            if (this.gridEditor.isDrawing && this.gridEditor.incrementLines) {
+                this.gridEditor.lineCounter++;
             }
+            this.gridEditor.incrementLines = true;
             this.gridEditor.isDrawing = false;
             this.gridEditor.tempLine = undefined;
-        }   
+        }
+        console.log(this.gridEditor.lineCounter)        
     }
 
     private useTool(pointer: Phaser.Input.Pointer) {
@@ -60,6 +57,7 @@ export class ToolHandler {
             case 'K':
             case 'OD':
             case 'CD':
+                this.gridEditor.isDrawing = true;
                 this.gridEditor.placeAt(x, y, this.currentTool);
                 break;
             case 'T':
