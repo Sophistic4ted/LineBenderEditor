@@ -189,10 +189,7 @@ export class GridEditor extends Phaser.Scene {
       if (this.tiles[y][x].previousTileDirection === undefined) {
         this.addToBeginning = true;
       }
-    } else if (this.tiles[y][x].nextTileDirection !== undefined && !isStart) {
-      this.isDrawing = false;
     }
-    this.isDrawing = false;
   }
 
   private processFieldWithDifferentSprite(y: number, x: number, type: TileType) {

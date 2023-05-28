@@ -24,3 +24,15 @@ window.onload = () => {
 
   const game = new Phaser.Game(config);
 }
+
+window.onbeforeunload = function (e) {
+  e = e || window.event;
+
+  // For IE and Firefox prior to version 4
+  if (e) {
+      e.returnValue = 'There are changes, are you sure?';
+  }
+
+  // For Safari
+  return 'There are changes, are you sure?';
+};
