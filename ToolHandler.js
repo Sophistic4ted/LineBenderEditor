@@ -9,14 +9,12 @@ export class ToolHandler {
         this.currentTool = tool;
     }
     handlePointerDown(pointer) {
-        console.log(this.gridEditor.lineCounter);
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer)) {
             this.useTool(pointer, true);
         }
     }
     handlePointerMove(pointer) {
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
-            console.log(this.gridEditor.isDrawing);
             this.useTool(pointer);
         }
     }
@@ -29,7 +27,6 @@ export class ToolHandler {
             this.gridEditor.isDrawing = false;
             this.gridEditor.tempLine = undefined;
         }
-        console.log(this.gridEditor.lineCounter);
     }
     useTool(pointer, isStart = false) {
         const camera = this.gridEditor.cameras.main;
