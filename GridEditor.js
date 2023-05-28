@@ -160,10 +160,6 @@ export class GridEditor extends Phaser.Scene {
                 this.addToBeginning = true;
             }
         }
-        else if (this.tiles[y][x].nextTileDirection !== undefined && !isStart) {
-            this.isDrawing = false;
-        }
-        this.isDrawing = false;
     }
     processFieldWithDifferentSprite(y, x, type) {
         this.incrementLines = false;
