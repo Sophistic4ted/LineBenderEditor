@@ -26,6 +26,7 @@ export class ToolHandler {
             this.gridEditor.incrementLines = true;
             this.gridEditor.isDrawing = false;
             this.gridEditor.tempLine = undefined;
+            this.gridEditor.addToBeginning = false;
         }
     }
     useTool(pointer, isStart = false) {

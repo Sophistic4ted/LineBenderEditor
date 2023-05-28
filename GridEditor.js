@@ -17,6 +17,7 @@ export class GridEditor extends Phaser.Scene {
     tempLine = undefined;
     lines = [];
     incrementLines = true;
+    addToBeginning = false;
     lineHues = [];
     constructor() {
         super({ key: 'GridEditor' });
@@ -152,13 +153,17 @@ export class GridEditor extends Phaser.Scene {
         if (this.tiles[y][x].type !== type) {
             this.processFieldWithDifferentSprite(y, x, type);
         }
-        else if (isStart && (this.tiles[y][x].previousTileDirection === undefined || this.tiles[y][x].nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
+        if (isStart && (this.tiles[y][x].previousTileDirection === undefined || this.tiles[y][x].nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
             this.incrementLines = false;
             this.tempLine = this.tiles[y][x].getLine();
+            if (this.tiles[y][x].previousTileDirection === undefined) {
+                this.addToBeginning = true;
+            }
         }
         else if (this.tiles[y][x].nextTileDirection !== undefined && !isStart) {
             this.isDrawing = false;
         }
+        this.isDrawing = false;
     }
     processFieldWithDifferentSprite(y, x, type) {
         this.incrementLines = false;
@@ -185,43 +190,52 @@ export class GridEditor extends Phaser.Scene {
             //   this.tiles[y][x].setLine(undefined);
             //   return
             // }
-            if (this.lines[line] === undefined) {
+            while (this.lines[line] === undefined) {
                 this.lines.push([]);
             }
-            this.lines[line].push(this.tiles[y][x]);
-            this.createHue();
+            if (this.addToBeginning) {
+                this.lines[line].unshift(this.tiles[y][x]);
+            }
+            else {
+                this.lines[line].push(this.tiles[y][x]);
+            }
             this.updateNeighbours(x, y);
             this.createSprite(x, y, type);
         }
     }
-    createHue() {
-        const newHue = (this.lines.length * 30) % 360;
-        this.lineHues.push(newHue);
-    }
     updateNeighbours(x, y) {
         const line = this.tiles[y][x].getLine();
         if (line !== undefined && this.lines[line].length > 1) {
-            const lastTile = this.lines[line][this.lines[line].length - 2];
-            const nextTile = this.lines[line][this.lines[line].length];
-            const currentTile = this.tiles[y][x];
-            if (lastTile) {
+            if (!this.addToBeginning) {
+                const lastTile = this.lines[line][this.lines[line].length - 2];
+                const nextTile = this.lines[line][this.lines[line].length - 1];
                 const direction = this.getDirection(lastTile.location, { x: x, y: y });
                 if (direction) {
                     lastTile.setNextTileDirection(direction);
                     this.updateSprite(lastTile);
                     this.tiles[y][x].setPreviousTileDirection(this.oppositeDirection(direction));
-                    const currentTile = this.tiles[y][x];
+                }
+            }
+            if (this.addToBeginning) {
+                const nextTile = this.lines[line][1];
+                const direction = this.getDirection({ x: x, y: y }, nextTile.location);
+                if (direction) {
+                    nextTile.setPreviousTileDirection(this.oppositeDirection(direction));
+                    this.updateSprite(nextTile);
+                    this.tiles[y][x].setNextTileDirection(direction);
                 }
             }
         }
     }
     updateSprite(tile) {
-        const previousDirection = tile.getPreviousTileDirection();
-        const nextDirection = tile.getNextTileDirection();
-        const { name: spriteName, rotation } = this.getSpriteData(tile.getType(), previousDirection, nextDirection);
-        const spriteFrame = this.spriteLoader.getSpriteFrameByName(spriteName);
-        if (spriteFrame !== undefined) {
-            tile.sprite?.setFrame(spriteFrame).setRotation(rotation);
+        if (tile !== undefined) {
+            const previousDirection = tile.getPreviousTileDirection();
+            const nextDirection = tile.getNextTileDirection();
+            const { name: spriteName, rotation } = this.getSpriteData(tile.getType(), previousDirection, nextDirection);
+            const spriteFrame = this.spriteLoader.getSpriteFrameByName(spriteName);
+            if (spriteFrame !== undefined) {
+                tile.sprite?.setFrame(spriteFrame).setRotation(rotation);
+            }
         }
     }
     createSprite(x, y, type) {
@@ -257,6 +271,7 @@ export class GridEditor extends Phaser.Scene {
         tile.setPreviousTileDirection(undefined);
         tile.sprite?.destroy(); // remove sprite from scene
         tile.sprite = undefined; // remove sprite reference
+        this.updateSprite(tile);
         // If the line has no more tiles
         if (this.lines[lineIndex].length === 0) {
             // Remove the line itself
@@ -268,11 +283,11 @@ export class GridEditor extends Phaser.Scene {
                 this.lines[i].forEach(tile => tile.line = i);
             }
         }
-        else if (tileIndex < this.lines[lineIndex]?.length) {
+        else if (tileIndex <= this.lines[lineIndex]?.length) {
             let nextTile = this.lines[lineIndex][tileIndex];
             let previousTile = this.lines[lineIndex][tileIndex - 1];
-            nextTile.setPreviousTileDirection(undefined);
-            previousTile.setNextTileDirection(undefined);
+            nextTile?.setPreviousTileDirection(undefined);
+            previousTile?.setNextTileDirection(undefined);
             this.updateSprite(nextTile);
             this.updateSprite(previousTile);
             this.lineCounter++;
