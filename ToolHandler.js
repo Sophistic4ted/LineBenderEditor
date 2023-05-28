@@ -11,17 +11,20 @@ export class ToolHandler {
     handlePointerDown(pointer) {
         console.log(this.gridEditor.lineCounter);
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer)) {
-            this.useTool(pointer);
+            this.useTool(pointer, true);
         }
     }
     handlePointerMove(pointer) {
+        if (!this.gridEditor.isDrawing)
+            return;
         if (pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
+            console.log(this.gridEditor.isDrawing);
             this.useTool(pointer);
         }
     }
     handlePointerUp(pointer) {
         if (pointer.leftButtonReleased() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
-            if (this.gridEditor.isDrawing && this.gridEditor.incrementLines) {
+            if (this.gridEditor.incrementLines) {
                 this.gridEditor.lineCounter++;
             }
             this.gridEditor.incrementLines = true;
@@ -30,7 +33,7 @@ export class ToolHandler {
         }
         console.log(this.gridEditor.lineCounter);
     }
-    useTool(pointer) {
+    useTool(pointer, isStart = false) {
         const camera = this.gridEditor.cameras.main;
         if (pointer.x < camera.x || pointer.x > camera.x + camera.width || pointer.y < camera.y || pointer.y > camera.y + camera.height) {
             return;
@@ -47,7 +50,7 @@ export class ToolHandler {
             case 'OD':
             case 'CD':
                 this.gridEditor.isDrawing = true;
-                this.gridEditor.placeAt(x, y, this.currentTool);
+                this.gridEditor.placeAt(x, y, this.currentTool, isStart);
                 break;
             case 'T':
                 this.gridEditor.removeAt(x, y);
