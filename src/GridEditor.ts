@@ -460,7 +460,7 @@ export class GridEditor extends Phaser.Scene {
     output += `${-padding} ${-padding} ${maxX - minX + padding} ${maxY - minY + padding}\n`;
     this.lines.forEach(line => {
 
-      output += `${line.length + 1} `;
+      output += `${line.length} `;
 
       line.forEach((tile, index) => {
         const normalizedX = tile.location.x - minX;
