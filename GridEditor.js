@@ -16,6 +16,7 @@ export class GridEditor extends Phaser.Scene {
     lineCounter = 0;
     tempLine = undefined;
     lines = [];
+    incrementLines = true;
     constructor() {
         super({ key: 'GridEditor' });
         this.worldBounds = {
@@ -67,7 +68,6 @@ export class GridEditor extends Phaser.Scene {
             console.error("Attempted to place tile out of grid bounds");
             return;
         }
-        console.log(this.lines);
         const spriteFrame = this.getSpriteFrame(type);
         if (this.tiles[y][x].sprite === undefined) {
             this.processEmptyField(x, y, type, spriteFrame);
@@ -85,6 +85,7 @@ export class GridEditor extends Phaser.Scene {
         }
     }
     processFieldWithDifferentSprite(y, x, spriteFrame, type) {
+        this.incrementLines = false;
         this.tiles[y][x].sprite?.destroy(); // remove sprite from scene
         this.tiles[y][x].sprite = undefined; // remove sprite reference
         const sprite = this.add.sprite(x * this.tileSize, y * this.tileSize, 'spritesheet', spriteFrame).setOrigin(0);
@@ -118,23 +119,41 @@ export class GridEditor extends Phaser.Scene {
         this.tiles[y][x].sprite = sprite;
     }
     removeAt(x, y) {
-        if (x < 0 || y < 0 || x >= this.gridTileSize.width || y >= this.gridTileSize.height) {
+        if (!this.isWithinBounds(x, y)) {
             console.error("Attempted to remove tile out of grid bounds");
             return;
         }
-        const lineIndex = this.tiles[y][x].getLine();
-        if (lineIndex !== undefined) {
-            const tileIndex = this.lines[lineIndex].indexOf(this.tiles[y][x]);
-            this.lines[lineIndex].splice(tileIndex, 1);
-            this.tiles[y][x].setType(TileType.None);
-            console.log(this.tiles[y][x].sprite);
-            this.tiles[y][x].sprite?.destroy(); // remove sprite from scene
-            this.tiles[y][x].sprite = undefined; // remove sprite reference
-            if (tileIndex < this.lines[lineIndex].length) {
-                const newLine = this.lines[lineIndex].splice(tileIndex);
-                this.lines.push(newLine);
-                newLine.forEach(tile => tile.line = this.lines.length - 1);
+        const tile = this.tiles[y][x];
+        const lineIndex = tile.getLine();
+        // If the tile is already removed, just return
+        if (tile.getType() === TileType.None || lineIndex === undefined) {
+            return;
+        }
+        const tileIndex = this.lines[lineIndex].indexOf(tile);
+        // If the tile is not found in the line, return
+        if (tileIndex === -1) {
+            return;
+        }
+        this.lines[lineIndex].splice(tileIndex, 1);
+        tile.setType(TileType.None);
+        console.log(tile.sprite);
+        tile.sprite?.destroy(); // remove sprite from scene
+        tile.sprite = undefined; // remove sprite reference
+        // If the line has no more tiles
+        if (this.lines[lineIndex].length === 0) {
+            // Remove the line itself
+            this.lines.splice(lineIndex, 1);
+            // Decrement the lineCounter
+            this.lineCounter--;
+            // Update line indices for remaining lines
+            for (let i = lineIndex; i < this.lines.length; i++) {
+                this.lines[i].forEach(tile => tile.line = i);
             }
+        }
+        else if (tileIndex < this.lines[lineIndex]?.length) {
+            const newLine = this.lines[lineIndex].splice(tileIndex);
+            this.lines.push(newLine);
+            newLine.forEach(tile => tile.line = this.lines.length - 1);
         }
         console.log(this.lines);
     }

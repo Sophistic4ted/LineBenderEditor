@@ -41,6 +41,9 @@ export class Tile {
     setType(type) {
         this.type = type;
     }
+    getType() {
+        return this.type;
+    }
     setSprite(sprite) {
         this.sprite = sprite;
     }
