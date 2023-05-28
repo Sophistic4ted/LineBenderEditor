@@ -14,7 +14,10 @@ export class ToolHandler {
         }
     }
     handlePointerMove(pointer) {
-        if (this.gridEditor.isDrawing && pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
+        if (this.gridEditor.isDrawing && pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.T) {
+            this.useTool(pointer);
+        }
+        else if (pointer.leftButtonDown() && this.currentTool === TileType.T) {
             this.useTool(pointer);
         }
     }

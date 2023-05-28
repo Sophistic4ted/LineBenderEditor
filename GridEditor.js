@@ -160,14 +160,22 @@ export class GridEditor extends Phaser.Scene {
         }
     }
     processOccupiedField(y, x, type, isStart = false) {
-        if (this.tiles[y][x].type !== type) {
-            this.processFieldWithDifferentSprite(y, x, type);
-        }
-        if (isStart && (this.tiles[y][x].previousTileDirection === undefined || this.tiles[y][x].nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
-            this.incrementLines = false;
-            this.tempLine = this.tiles[y][x].getLine();
-            if (this.tiles[y][x].previousTileDirection === undefined) {
-                this.addToBeginning = true;
+        const tile = this.tiles[y][x];
+        if (tile !== undefined) {
+            if (tile.type !== type) {
+                this.processFieldWithDifferentSprite(y, x, type);
+            }
+            if (isStart && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
+                this.incrementLines = false;
+                this.tempLine = tile.getLine();
+                if (tile.previousTileDirection === undefined) {
+                    this.addToBeginning = true;
+                }
+            }
+            if (tile.getLine() !== undefined) {
+                if (!isStart && this.lineCounter !== tile.getLine()) {
+                    this.isDrawing = false;
+                }
             }
         }
     }
