@@ -18,10 +18,10 @@ const spriteData = [
   { id: "SUU", xIndex: 2, yIndex: 2 },
   { id: "SUN", xIndex: 3, yIndex: 2 },
 
-  { id: "C", xIndex: 0, yIndex: 4 },
-  { id: "CWN", xIndex: 1, yIndex: 4 },
-  { id: "CUU", xIndex: 2, yIndex: 4 },
-  { id: "CUN", xIndex: 3, yIndex: 4},
+  { id: "D", xIndex: 0, yIndex: 4 },
+  { id: "DWN", xIndex: 1, yIndex: 4 },
+  { id: "DUU", xIndex: 2, yIndex: 4 },
+  { id: "DUN", xIndex: 3, yIndex: 4},
 
   { id: "K", xIndex: 0, yIndex: 5 },
   { id: "KWN", xIndex: 1, yIndex: 5 },
