@@ -30,7 +30,7 @@ export class Tile {
     sprite;
     nextTileDirection;
     previousTileDirection;
-    constructor(type, location, line, sprite, nextTileDirection, previousTileDirection) {
+    constructor(type, location, line = undefined, sprite, nextTileDirection, previousTileDirection) {
         this.type = type;
         this.location = location;
         this.line = line;

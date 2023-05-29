@@ -23,12 +23,8 @@ export class ToolHandler {
     }
     handlePointerUp(pointer) {
         if (pointer.leftButtonReleased() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.None) {
-            if (this.gridEditor.incrementLines) {
-                this.gridEditor.lineCounter++;
-            }
-            this.gridEditor.incrementLines = true;
             this.gridEditor.isDrawing = false;
-            this.gridEditor.tempLine = undefined;
+            this.gridEditor.tempLineNumber = undefined;
             this.gridEditor.addToBeginning = false;
         }
     }
