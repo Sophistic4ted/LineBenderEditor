@@ -151,7 +151,7 @@ export class GridEditor extends Phaser.Scene {
       this.updateSprite(previousTile);
       const newLine = this.lines[lineIndex].splice(tileIndex);
       this.lines.push(newLine);
-      newLine.forEach(tile => tile.line = this.lines.length-1);
+      newLine.forEach(tile => tile.line = this.lines.length - 1);
     }
     console.log(this.lines)
   }
@@ -420,14 +420,16 @@ export class GridEditor extends Phaser.Scene {
   }
 
   placePlayer(x: number, y: number) {
-    this.player.location.x = x;
-    this.player.location.y = y;
-    this.player.sprite = this.add.sprite(x * this.tileSize + this.tileSize / 2, y * this.tileSize + this.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameById(TileType.P)).setOrigin(0.5);
+    if (this.tiles[y][x].sprite !== undefined && TileType[this.tiles[y][x].getType()] !== "K" || TileType[this.tiles[y][x].getType()] !== "B" ) {
+      this.player.location.x = x;
+      this.player.location.y = y;
+      this.player.sprite = this.add.sprite(x * this.tileSize + this.tileSize / 2, y * this.tileSize + this.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameById(TileType.P)).setOrigin(0.5);
+    }
   }
 
   removePlayer(x: number, y: number) {
-    this.player.sprite?.destroy();  // remove sprite from scene
-    this.player.sprite = undefined;  // remove sprite reference
+      this.player.sprite?.destroy();  // remove sprite from scene
+      this.player.sprite = undefined;  // remove sprite reference
   }
 
 

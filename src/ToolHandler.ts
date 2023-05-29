@@ -53,7 +53,7 @@ export class ToolHandler {
             case 'S':
             case 'K':
             case 'OD':
-            case 'C':
+            case 'D':
                 this.gridEditor.isDrawing = true;
                 this.gridEditor.placeAt(x, y, this.currentTool, isStart);
                 break;
@@ -61,7 +61,6 @@ export class ToolHandler {
                 this.gridEditor.removeAt(x, y);
                 break;
             case 'P':
-                this.gridEditor.player.location = { x, y };
                 this.gridEditor.removePlayer(x, y);
                 this.gridEditor.placePlayer(x, y);
                 break;
