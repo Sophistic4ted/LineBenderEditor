@@ -122,7 +122,7 @@ export class GridEditor extends Phaser.Scene {
             this.updateSprite(previousTile);
             const newLine = this.lines[lineIndex].splice(tileIndex);
             this.lines.push(newLine);
-            newLine.forEach(tile => tile.line = this.lines.length);
+            newLine.forEach(tile => tile.line = this.lines.length - 1);
         }
         console.log(this.lines);
     }
@@ -283,7 +283,7 @@ export class GridEditor extends Phaser.Scene {
                 }
             }
             if (tile.getLine() !== undefined) {
-                if (!isStart && this.tempLineNumber === undefined && this.lines.length - 1 !== tile.getLine()) {
+                if (this.tempLineNumber !== tile.getLine() && this.lines.length - 1 !== tile.getLine()) {
                     this.isDrawing = false;
                 }
             }
@@ -292,8 +292,8 @@ export class GridEditor extends Phaser.Scene {
     processFieldWithDifferentSprite(y, x, type) {
         this.tiles[y][x].sprite?.destroy(); // remove sprite from scene
         this.tiles[y][x].sprite = undefined; // remove sprite reference
-        const spriteFrame = this.spriteLoader.getSpriteFrameById(type);
-        const sprite = this.createSprite(x, y, type);
+        this.spriteLoader.getSpriteFrameById(type);
+        this.createSprite(x, y, type);
     }
     isWithinBounds(x, y) {
         return x >= 0 && y >= 0 && x < this.gridTileSize.width && y < this.gridTileSize.height;
@@ -342,7 +342,6 @@ export class GridEditor extends Phaser.Scene {
             }
             else {
                 const lastTile = this.lines[line][this.lines[line].length - 2];
-                const nextTile = this.lines[line][this.lines[line].length - 1];
                 const direction = this.getDirection(lastTile.location, { x: x, y: y });
                 if (direction) {
                     lastTile.setNextTileDirection(direction);
