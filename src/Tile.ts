@@ -10,7 +10,7 @@ export class Tile {
 
     constructor(public type: TileType,
         public location: { x: number, y: number },
-        public line?: number,
+        public line: number | undefined = undefined,
         public sprite?: Phaser.GameObjects.Sprite,
         public nextTileDirection?: Direction,
         public previousTileDirection?: Direction) { }
