@@ -43,7 +43,7 @@ export class ToolHandler {
             case 'S':
             case 'K':
             case 'OD':
-            case 'CD':
+            case 'C':
                 this.gridEditor.isDrawing = true;
                 this.gridEditor.placeAt(x, y, this.currentTool, isStart);
                 break;
