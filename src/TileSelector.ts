@@ -13,7 +13,7 @@ export class TileSelector extends Phaser.Scene {
   constructor() {
     super({ key: 'TileSelector' });
     this.spriteLoader = new SpriteLoader();
-    this.tileTypes = [TileType.G, TileType.B, TileType.W, TileType.S, TileType.K, TileType.C, TileType.T, TileType.P]
+    this.tileTypes = [TileType.G, TileType.B, TileType.W, TileType.S, TileType.K, TileType.D, TileType.T, TileType.P]
   }
 
   preload() {
