@@ -94,12 +94,11 @@ export class GridEditor extends Phaser.Scene {
   }
 
   placeAt(x: number, y: number, type: TileType, isStart: boolean = false) {
-    if (this.tiles[y][x].sprite === undefined) {
-      this.processEmptyField(x, y, type, isStart);
-    } else {
-      this.processOccupiedField(y, x, type, isStart);
+      if (this.tiles[y][x].sprite === undefined) {
+        this.processEmptyField(x, y, type, isStart);
+      } else {
+        this.processOccupiedField(y, x, type, isStart);
     }
-    console.log(this.lines)
   }
 
   removeAt(x: number, y: number) {
@@ -153,20 +152,16 @@ export class GridEditor extends Phaser.Scene {
       this.lines.push(newLine);
       newLine.forEach(tile => tile.line = this.lines.length - 1);
     }
-    console.log(this.lines)
   }
 
   isCorrectMovement(x: number, y: number): boolean {
+    console.log(x, y)
     const line = this.tiles[y][x].getLine();
-
-    if (!this.isWithinBounds(x, y)) {
-      return false
-    }
     if (line !== undefined) {
-      if (this.lines[line]?.length > 1) {
-        const lastTile = this.lines[line][this.lines[line].length - 2];
-        if (this.getDirection(lastTile.location, { x: x, y: y }) === undefined) {
-          return false;
+      if (this.lines[line]?.length > 0) {
+        let lastTile = this.lines[line][this.lines[line].length - 1];
+        if(this.addToBeginning) {
+          lastTile = this.lines[line][0];
         }
         if (!this.checkContinuity(lastTile.location, { x: x, y: y })) {
           return false;
@@ -177,7 +172,11 @@ export class GridEditor extends Phaser.Scene {
   }
 
   checkContinuity(from: { x: number, y: number }, to: { x: number, y: number }): boolean {
-    if (Math.abs(to.x - from.x) <= 1 && Math.abs(to.y - from.y) <= 1) {
+    const dx = Math.abs(to.x - from.x);
+    const dy = Math.abs(to.y - from.y);
+    
+    // Only one of dx and dy should be 1, and the other should be 0
+    if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
       return true;
     }
     return false;
@@ -351,9 +350,10 @@ export class GridEditor extends Phaser.Scene {
       const line = this.tempLineNumber !== undefined ? this.tempLineNumber : (this.lines.length - 1);
 
       this.tiles[y][x].setLine(line);
-      // if (!this.isCorrectMovement(x, y)) {
-      //   return
-      // }
+      if (!this.isCorrectMovement(x, y)) {
+        this.tiles[y][x].setLine(undefined);
+        return
+      }
       if (this.addToBeginning) {
         this.lines[line].unshift(this.tiles[y][x]);
       } else {
@@ -420,7 +420,7 @@ export class GridEditor extends Phaser.Scene {
   }
 
   placePlayer(x: number, y: number) {
-    if (this.tiles[y][x].sprite !== undefined && TileType[this.tiles[y][x].getType()] !== "K" && TileType[this.tiles[y][x].getType()] !== "B" ) {
+    if (this.tiles[y][x].sprite !== undefined && TileType[this.tiles[y][x].getType()] !== "K" && TileType[this.tiles[y][x].getType()] !== "B") {
       this.player.location.x = x;
       this.player.location.y = y;
       this.player.sprite = this.add.sprite(x * this.tileSize + this.tileSize / 2, y * this.tileSize + this.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameById(TileType.P)).setOrigin(0.5);
@@ -428,8 +428,8 @@ export class GridEditor extends Phaser.Scene {
   }
 
   removePlayer(x: number, y: number) {
-      this.player.sprite?.destroy();  // remove sprite from scene
-      this.player.sprite = undefined;  // remove sprite reference
+    this.player.sprite?.destroy();  // remove sprite from scene
+    this.player.sprite = undefined;  // remove sprite reference
   }
 
 
