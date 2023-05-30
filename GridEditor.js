@@ -79,7 +79,6 @@ export class GridEditor extends Phaser.Scene {
         else {
             this.processOccupiedField(y, x, type, isStart);
         }
-        console.log(this.lines);
     }
     removeAt(x, y) {
         if (!this.isWithinBounds(x, y)) {
@@ -124,18 +123,15 @@ export class GridEditor extends Phaser.Scene {
             this.lines.push(newLine);
             newLine.forEach(tile => tile.line = this.lines.length - 1);
         }
-        console.log(this.lines);
     }
     isCorrectMovement(x, y) {
+        console.log(x, y);
         const line = this.tiles[y][x].getLine();
-        if (!this.isWithinBounds(x, y)) {
-            return false;
-        }
         if (line !== undefined) {
-            if (this.lines[line]?.length > 1) {
-                const lastTile = this.lines[line][this.lines[line].length - 2];
-                if (this.getDirection(lastTile.location, { x: x, y: y }) === undefined) {
-                    return false;
+            if (this.lines[line]?.length > 0) {
+                let lastTile = this.lines[line][this.lines[line].length - 1];
+                if (this.addToBeginning) {
+                    lastTile = this.lines[line][0];
                 }
                 if (!this.checkContinuity(lastTile.location, { x: x, y: y })) {
                     return false;
@@ -145,7 +141,10 @@ export class GridEditor extends Phaser.Scene {
         return true;
     }
     checkContinuity(from, to) {
-        if (Math.abs(to.x - from.x) <= 1 && Math.abs(to.y - from.y) <= 1) {
+        const dx = Math.abs(to.x - from.x);
+        const dy = Math.abs(to.y - from.y);
+        // Only one of dx and dy should be 1, and the other should be 0
+        if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
             return true;
         }
         return false;
@@ -313,9 +312,10 @@ export class GridEditor extends Phaser.Scene {
             }
             const line = this.tempLineNumber !== undefined ? this.tempLineNumber : (this.lines.length - 1);
             this.tiles[y][x].setLine(line);
-            // if (!this.isCorrectMovement(x, y)) {
-            //   return
-            // }
+            if (!this.isCorrectMovement(x, y)) {
+                this.tiles[y][x].setLine(undefined);
+                return;
+            }
             if (this.addToBeginning) {
                 this.lines[line].unshift(this.tiles[y][x]);
             }
