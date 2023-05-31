@@ -49,6 +49,15 @@ export class GridEditor extends Phaser.Scene {
                 console.error('Error in copying text: ', err);
             }
         });
+        this.input.keyboard?.on('keydown-V', async () => {
+            try {
+                const readText = await navigator.clipboard.readText();
+                this.importLines(readText);
+            }
+            catch (err) {
+                console.error('Error in copying text: ', err);
+            }
+        });
         eventsCenter.on('update-tool', this.updateTool, this);
         this.add.grid(0, 0, this.worldBounds.x, this.worldBounds.y, this.tileSize, this.tileSize, 0x1a1a1a).setOrigin(0); // Set grid's origin to the top-left corner
         this.cameras.main.setViewport(this.menuWidth, 0, this.scale.width - this.menuWidth, this.scale.height);
@@ -125,7 +134,6 @@ export class GridEditor extends Phaser.Scene {
         }
     }
     isCorrectMovement(x, y) {
-        console.log(x, y);
         const line = this.tiles[y][x].getLine();
         if (line !== undefined) {
             if (this.lines[line]?.length > 0) {
@@ -202,6 +210,10 @@ export class GridEditor extends Phaser.Scene {
     }
     processOccupiedField(y, x, type, isStart = false, lineIndex = 0) {
         const tile = this.tiles[y][x];
+        if (!this.isCorrectMovement(x, y)) {
+            this.tiles[y][x].setLine(undefined);
+            return;
+        }
         if (tile !== undefined) {
             if (tile.type !== type) {
                 this.processFieldWithDifferentSprite(y, x, type);
@@ -450,6 +462,7 @@ export class GridEditor extends Phaser.Scene {
                     }
                 }
                 playerLine = playerLineOrig - deletedLines;
+                playerLine = playerLine < 0 ? 0 : playerLine;
             });
         }
         const lines = this.lines.filter(n => n.length > 0);
@@ -469,6 +482,7 @@ export class GridEditor extends Phaser.Scene {
         let playerTileIndex = 0;
         if (playerLine !== undefined) {
             playerTileIndex = lines[playerLine].indexOf(playerTile);
+            playerTileIndex = playerTileIndex < 0 ? 0 : playerTileIndex;
         }
         let output = `${lines.length} ${playerLine} ${playerTileIndex} D\n`;
         output += `${-padding} ${-padding} ${maxX - minX + padding} ${maxY - minY + padding}\n`;
@@ -510,5 +524,69 @@ export class GridEditor extends Phaser.Scene {
             });
         });
         return output;
+    }
+    importLines(input) {
+        this.tiles.forEach(row => {
+            row.forEach(tile => {
+                this.removeAt(tile.location.x, tile.location.y);
+            });
+        });
+        this.lines.forEach(line => {
+            line.forEach(tile => {
+                this.removeAt(tile.location.x, tile.location.y);
+            });
+        });
+        this.tiles = [];
+        this.lines = [];
+        this.initTileMap();
+        let inputLines = input.replace(/(\r)/gm, "").split('\n');
+        let numberOfLines = parseInt(inputLines[0]);
+        let [minX, minY, maxX, maxY] = inputLines[1].split(' ');
+        let minXnum = 50 - Number(minX);
+        let minYnum = 50 - Number(minY);
+        for (let i = 1; i <= numberOfLines + 1; i++) {
+            this.lines.push([]);
+            this.isDrawing = true;
+            if (i < 2)
+                continue; // skip the camera position line
+            let lineData = inputLines[i].split(' ');
+            let numberOfTiles = parseInt(lineData[0]);
+            let x = parseInt(lineData[1]) + minXnum; // normalize x
+            let y = parseInt(lineData[2]) + minYnum; // normalize y
+            for (let j = 3; j < 3 + numberOfTiles; j++) {
+                let tileData = lineData[j];
+                let type = tileData.slice(-1);
+                if (tileData.length == 1) {
+                    type = tileData[0];
+                }
+                let tile = new Tile(TileType[type], { x, y }, i);
+                this.placeAt(x, y, TileType[type]);
+                if (tileData.length == 2) {
+                    switch (tileData.slice(0, -1)) {
+                        case 'U':
+                            y--;
+                            break;
+                        case 'D':
+                            if (j == 3) {
+                                this.addToBeginning = true;
+                            }
+                            y++;
+                            break;
+                        case 'R':
+                            x++;
+                            break;
+                        case 'L':
+                            if (j == 3) {
+                                this.addToBeginning = true;
+                            }
+                            x--;
+                            break;
+                    }
+                }
+                this.lines[i - 2].push(tile);
+            }
+            this.addToBeginning = false;
+            this.isDrawing = false;
+        }
     }
 }
