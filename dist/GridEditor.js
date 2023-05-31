@@ -2,6 +2,7 @@ import { SpriteLoader } from "./SpriteLoader.js";
 import eventsCenter from "./EventsCenter.js";
 import { TileType, Tile, Direction } from "./Tile.js";
 import { ToolHandler } from "./ToolHandler.js";
+import { Player } from "./Player.js";
 export class GridEditor extends Phaser.Scene {
     tileSize = 28;
     menuWidth = 385;
@@ -13,12 +14,10 @@ export class GridEditor extends Phaser.Scene {
     spriteLoader;
     tiles = [];
     toolHandler;
-    lineCounter = 0;
-    tempLine = undefined;
+    tempLineNumber = undefined;
     lines = [];
-    incrementLines = true;
     addToBeginning = false;
-    lineHues = [];
+    player = new Player({ x: 0, y: 0 }, undefined);
     constructor() {
         super({ key: 'GridEditor' });
         this.worldBounds = {
@@ -42,10 +41,18 @@ export class GridEditor extends Phaser.Scene {
         this.input.on('pointerup', this.toolHandler.handlePointerUp.bind(this.toolHandler));
         this.scale.on('resize', this.handleResize, this);
         this.input.keyboard?.on('keydown-C', async () => {
-            const textToCopy = 'Hello, world!';
+            const textToCopy = this.exportLines();
             try {
                 await navigator.clipboard.writeText(textToCopy);
-                console.log('Text copied to clipboard');
+            }
+            catch (err) {
+                console.error('Error in copying text: ', err);
+            }
+        });
+        this.input.keyboard?.on('keydown-V', async () => {
+            try {
+                const readText = await navigator.clipboard.readText();
+                this.importLines(readText);
             }
             catch (err) {
                 console.error('Error in copying text: ', err);
@@ -66,7 +73,6 @@ export class GridEditor extends Phaser.Scene {
             for (let x = 0; x < this.gridTileSize.width; x++) {
                 let tile = new Tile(TileType.None, { x: x, y: y });
                 tile.setSprite(undefined);
-                tile.setLine(undefined);
                 row.push(tile);
             }
             this.tiles.push(row);
@@ -77,23 +83,63 @@ export class GridEditor extends Phaser.Scene {
     }
     placeAt(x, y, type, isStart = false) {
         if (this.tiles[y][x].sprite === undefined) {
-            this.processEmptyField(x, y, type);
+            this.processEmptyField(x, y, type, isStart);
         }
         else {
             this.processOccupiedField(y, x, type, isStart);
         }
-        console.log(this.lines);
+    }
+    removeAt(x, y) {
+        if (!this.isWithinBounds(x, y)) {
+            console.error("Attempted to remove tile out of grid bounds");
+            return;
+        }
+        const tile = this.tiles[y][x];
+        const lineIndex = tile.getLine();
+        // If the tile is already removed, just return
+        if (tile.getType() === TileType.None || lineIndex === undefined) {
+            return;
+        }
+        const tileIndex = this.lines[lineIndex].indexOf(tile);
+        // If the tile is not found in the line, return
+        if (tileIndex === -1) {
+            return;
+        }
+        this.lines[lineIndex].splice(tileIndex, 1);
+        tile.setType(TileType.None);
+        tile.setNextTileDirection(undefined);
+        tile.setPreviousTileDirection(undefined);
+        tile.sprite?.destroy(); // remove sprite from scene
+        tile.sprite = undefined; // remove sprite reference
+        this.updateSprite(tile);
+        // If the line has no more tiles
+        if (this.lines[lineIndex].length === 0) {
+            // Remove the line itself
+            this.lines.splice(lineIndex, 1);
+            // Update line indices for remaining lines
+            for (let i = lineIndex; i < this.lines.length; i++) {
+                this.lines[i].forEach(tile => tile.line = i);
+            }
+        }
+        else if (tileIndex <= this.lines[lineIndex]?.length) {
+            let nextTile = this.lines[lineIndex][tileIndex];
+            let previousTile = this.lines[lineIndex][tileIndex - 1];
+            nextTile?.setPreviousTileDirection(undefined);
+            previousTile?.setNextTileDirection(undefined);
+            this.updateSprite(nextTile);
+            this.updateSprite(previousTile);
+            const newLine = this.lines[lineIndex].splice(tileIndex);
+            this.lines.push(newLine);
+            newLine.forEach(tile => tile.line = this.lines.length - 1);
+        }
     }
     isCorrectMovement(x, y) {
         const line = this.tiles[y][x].getLine();
-        if (!this.isWithinBounds(x, y)) {
-            return false;
-        }
         if (line !== undefined) {
-            if (this.lines[line]?.length > 1) {
-                const lastTile = this.lines[line][this.lines[line].length - 2];
-                if (this.getDirection(lastTile.location, { x: x, y: y }) === undefined) {
-                    return false;
+            if (this.lines[line]?.length > 0) {
+                let lastTile = this.lines[line][this.lines[line].length - 1];
+                if (this.addToBeginning) {
+                    lastTile = this.lines[line][0];
                 }
                 if (!this.checkContinuity(lastTile.location, { x: x, y: y })) {
                     return false;
@@ -103,7 +149,10 @@ export class GridEditor extends Phaser.Scene {
         return true;
     }
     checkContinuity(from, to) {
-        if (Math.abs(to.x - from.x) <= 1 && Math.abs(to.y - from.y) <= 1) {
+        const dx = Math.abs(to.x - from.x);
+        const dy = Math.abs(to.y - from.y);
+        // Only one of dx and dy should be 1, and the other should be 0
+        if ((dx === 1 && dy === 0) || (dx === 0 && dy === 1)) {
             return true;
         }
         return false;
@@ -159,32 +208,99 @@ export class GridEditor extends Phaser.Scene {
                 return Direction.East;
         }
     }
-    processOccupiedField(y, x, type, isStart = false) {
+    processOccupiedField(y, x, type, isStart = false, lineIndex = 0) {
         const tile = this.tiles[y][x];
         if (tile !== undefined) {
             if (tile.type !== type) {
                 this.processFieldWithDifferentSprite(y, x, type);
             }
-            if (isStart && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined) && this.isDrawing && this.tempLine === undefined) {
-                this.incrementLines = false;
-                this.tempLine = tile.getLine();
+            if (isStart && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined) && this.isDrawing && this.tempLineNumber === undefined) {
+                this.tempLineNumber = tile.getLine();
                 if (tile.previousTileDirection === undefined) {
                     this.addToBeginning = true;
                 }
             }
+            if (this.tempLineNumber !== undefined && tile.getLine() !== this.tempLineNumber && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined)) {
+                const tileLine = tile.getLine();
+                if (tileLine !== undefined) {
+                    const tempLine = this.lines[this.tempLineNumber];
+                    if (tempLine !== undefined) {
+                        let lastTile = tempLine.at(tempLine.length - 1);
+                        if (this.addToBeginning) {
+                            lastTile = tempLine.at(0);
+                        }
+                        if (lastTile !== undefined) {
+                            let direction = this.getDirection(lastTile.location, tile.location);
+                            if (this.addToBeginning) {
+                                direction = this.getDirection(tile.location, lastTile.location);
+                            }
+                            if (direction !== undefined) {
+                                if (this.addToBeginning) {
+                                    if (tile.getPreviousTileDirection() === undefined) {
+                                        tile.setPreviousTileDirection(direction);
+                                        lastTile.setPreviousTileDirection(this.oppositeDirection(direction));
+                                        this.lines[tileLine].forEach(tile => {
+                                            const tempDirection = tile.getNextTileDirection();
+                                            tile.setNextTileDirection(tile.getPreviousTileDirection());
+                                            tile.setPreviousTileDirection(tempDirection);
+                                        });
+                                        tempLine.unshift(...this.lines[tileLine].reverse());
+                                        this.lines.splice(tileLine, 1);
+                                    }
+                                    else if (tile.getNextTileDirection() === undefined) {
+                                        lastTile.setPreviousTileDirection(this.oppositeDirection(direction));
+                                        tile.setNextTileDirection(direction);
+                                        tempLine.unshift(...this.lines[tileLine]);
+                                        this.lines.splice(tileLine, 1);
+                                    }
+                                }
+                                else {
+                                    if (tile.getNextTileDirection() === undefined) {
+                                        tile.setNextTileDirection(this.oppositeDirection(direction));
+                                        lastTile.setNextTileDirection(direction);
+                                        this.lines[tileLine].forEach(tile => {
+                                            const tempDirection = tile.getNextTileDirection();
+                                            tile.setNextTileDirection(tile.getPreviousTileDirection());
+                                            tile.setPreviousTileDirection(tempDirection);
+                                        });
+                                        tempLine.push(...this.lines[tileLine].reverse());
+                                        this.lines.splice(tileLine, 1);
+                                    }
+                                    else if (tile.getPreviousTileDirection() === undefined) {
+                                        lastTile.setNextTileDirection(direction);
+                                        tile.setPreviousTileDirection(this.oppositeDirection(direction));
+                                        tempLine.push(...this.lines[tileLine]);
+                                        this.lines.splice(tileLine, 1);
+                                    }
+                                }
+                                this.updateSprite(tile);
+                                this.updateSprite(lastTile);
+                                const lastTileLine = lastTile.getLine();
+                                if (tileLine !== undefined && lastTileLine !== undefined) {
+                                    if (tileLine > lastTileLine) {
+                                        tempLine.forEach(tile => tile.line = this.tempLineNumber ? this.tempLineNumber : 0);
+                                    }
+                                    else {
+                                        tempLine.forEach(tile => tile.line = tileLine);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
             if (tile.getLine() !== undefined) {
-                if (!isStart && this.lineCounter !== tile.getLine()) {
+                if (this.tempLineNumber !== tile.getLine() && this.lines.length - 1 !== tile.getLine()) {
                     this.isDrawing = false;
                 }
             }
         }
     }
     processFieldWithDifferentSprite(y, x, type) {
-        this.incrementLines = false;
         this.tiles[y][x].sprite?.destroy(); // remove sprite from scene
         this.tiles[y][x].sprite = undefined; // remove sprite reference
-        const spriteFrame = this.spriteLoader.getSpriteFrameById(type);
-        const sprite = this.createSprite(x, y, type);
+        this.spriteLoader.getSpriteFrameById(type);
+        this.createSprite(x, y, type);
     }
     isWithinBounds(x, y) {
         return x >= 0 && y >= 0 && x < this.gridTileSize.width && y < this.gridTileSize.height;
@@ -196,16 +312,17 @@ export class GridEditor extends Phaser.Scene {
         }
         return spriteFrame;
     }
-    processEmptyField(x, y, type) {
+    processEmptyField(x, y, type, isStart = false) {
+        const tile = this.tiles[y][x];
         if (this.isDrawing) {
-            const line = this.tempLine !== undefined ? this.tempLine : this.lineCounter;
-            this.tiles[y][x].setLine(line);
-            // if(!this.isCorrectMovement(x, y)) {
-            //   this.tiles[y][x].setLine(undefined);
-            //   return
-            // }
-            while (this.lines[line] === undefined) {
+            if (isStart) {
                 this.lines.push([]);
+            }
+            const line = this.tempLineNumber !== undefined ? this.tempLineNumber : (this.lines.length - 1);
+            this.tiles[y][x].setLine(line);
+            if (!this.isCorrectMovement(x, y)) {
+                this.tiles[y][x].setLine(undefined);
+                return;
             }
             if (this.addToBeginning) {
                 this.lines[line].unshift(this.tiles[y][x]);
@@ -218,25 +335,27 @@ export class GridEditor extends Phaser.Scene {
         }
     }
     updateNeighbours(x, y) {
+        const tile = this.tiles[y][x];
         const line = this.tiles[y][x].getLine();
         if (line !== undefined && this.lines[line].length > 1) {
-            if (!this.addToBeginning) {
-                const lastTile = this.lines[line][this.lines[line].length - 2];
-                const nextTile = this.lines[line][this.lines[line].length - 1];
-                const direction = this.getDirection(lastTile.location, { x: x, y: y });
-                if (direction) {
-                    lastTile.setNextTileDirection(direction);
-                    this.updateSprite(lastTile);
-                    this.tiles[y][x].setPreviousTileDirection(this.oppositeDirection(direction));
-                }
-            }
             if (this.addToBeginning) {
                 const nextTile = this.lines[line][1];
                 const direction = this.getDirection({ x: x, y: y }, nextTile.location);
                 if (direction) {
                     nextTile.setPreviousTileDirection(this.oppositeDirection(direction));
-                    this.updateSprite(nextTile);
                     this.tiles[y][x].setNextTileDirection(direction);
+                    this.updateSprite(nextTile);
+                    this.updateSprite(this.tiles[y][x]);
+                }
+            }
+            else {
+                const lastTile = this.lines[line][this.lines[line].length - 2];
+                const direction = this.getDirection(lastTile.location, { x: x, y: y });
+                if (direction) {
+                    lastTile.setNextTileDirection(direction);
+                    this.tiles[y][x].setPreviousTileDirection(this.oppositeDirection(direction));
+                    this.updateSprite(lastTile);
+                    this.updateSprite(this.tiles[y][x]);
                 }
             }
         }
@@ -263,52 +382,16 @@ export class GridEditor extends Phaser.Scene {
         this.tiles[y][x].setType(type);
         this.tiles[y][x].sprite = sprite;
     }
-    removeAt(x, y) {
-        if (!this.isWithinBounds(x, y)) {
-            console.error("Attempted to remove tile out of grid bounds");
-            return;
+    placePlayer(x, y) {
+        if (this.tiles[y][x].sprite !== undefined && TileType[this.tiles[y][x].getType()] !== "K" && TileType[this.tiles[y][x].getType()] !== "B") {
+            this.player.location.x = x;
+            this.player.location.y = y;
+            this.player.sprite = this.add.sprite(x * this.tileSize + this.tileSize / 2, y * this.tileSize + this.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameById(TileType.P)).setOrigin(0.5);
         }
-        const tile = this.tiles[y][x];
-        const lineIndex = tile.getLine();
-        // If the tile is already removed, just return
-        if (tile.getType() === TileType.None || lineIndex === undefined) {
-            return;
-        }
-        const tileIndex = this.lines[lineIndex].indexOf(tile);
-        // If the tile is not found in the line, return
-        if (tileIndex === -1) {
-            return;
-        }
-        this.lines[lineIndex].splice(tileIndex, 1);
-        tile.setType(TileType.None);
-        tile.setNextTileDirection(undefined);
-        tile.setPreviousTileDirection(undefined);
-        tile.sprite?.destroy(); // remove sprite from scene
-        tile.sprite = undefined; // remove sprite reference
-        this.updateSprite(tile);
-        // If the line has no more tiles
-        if (this.lines[lineIndex].length === 0) {
-            // Remove the line itself
-            this.lines.splice(lineIndex, 1);
-            // Decrement the lineCounter
-            this.lineCounter--;
-            // Update line indices for remaining lines
-            for (let i = lineIndex; i < this.lines.length; i++) {
-                this.lines[i].forEach(tile => tile.line = i);
-            }
-        }
-        else if (tileIndex <= this.lines[lineIndex]?.length) {
-            let nextTile = this.lines[lineIndex][tileIndex];
-            let previousTile = this.lines[lineIndex][tileIndex - 1];
-            nextTile?.setPreviousTileDirection(undefined);
-            previousTile?.setNextTileDirection(undefined);
-            this.updateSprite(nextTile);
-            this.updateSprite(previousTile);
-            this.lineCounter++;
-            const newLine = this.lines[lineIndex].splice(tileIndex);
-            this.lines.push(newLine);
-            newLine.forEach(tile => tile.line = this.lines.length - 1);
-        }
+    }
+    removePlayer(x, y) {
+        this.player.sprite?.destroy(); // remove sprite from scene
+        this.player.sprite = undefined; // remove sprite reference
     }
     handleMouseDown(pointer) {
         const camera = this.cameras.main;
@@ -357,5 +440,149 @@ export class GridEditor extends Phaser.Scene {
     }
     handleResize(gameSize, baseSize, displaySize, resolution) {
         this.cameras.main.setViewport(this.menuWidth, 0, gameSize.width - this.menuWidth, gameSize.height); // ...
+    }
+    exportLines() {
+        let minX = Number.MAX_SAFE_INTEGER;
+        let minY = Number.MAX_SAFE_INTEGER;
+        let maxX = Number.MIN_SAFE_INTEGER;
+        let maxY = Number.MIN_SAFE_INTEGER;
+        let deletedLines = 0;
+        const playerTile = this.tiles[this.player.location.y][this.player.location.x];
+        const playerLineOrig = playerTile.getLine();
+        let playerLine = 0;
+        if (playerLineOrig !== undefined) {
+            this.lines.forEach((line, index) => {
+                if (line.length === 0) {
+                    if (index < playerLineOrig) {
+                        deletedLines++;
+                    }
+                }
+                playerLine = playerLineOrig - deletedLines;
+                playerLine = playerLine < 0 ? 0 : playerLine;
+            });
+        }
+        const lines = this.lines.filter(n => n.length > 0);
+        lines.forEach(line => {
+            line.forEach(tile => {
+                if (tile.location.x < minX)
+                    minX = tile.location.x;
+                if (tile.location.y < minY)
+                    minY = tile.location.y;
+                if (tile.location.x > maxX)
+                    maxX = tile.location.x;
+                if (tile.location.y > maxY)
+                    maxY = tile.location.y;
+            });
+        });
+        let padding = 2;
+        let playerTileIndex = 0;
+        if (playerLine !== undefined) {
+            playerTileIndex = lines[playerLine].indexOf(playerTile);
+            playerTileIndex = playerTileIndex < 0 ? 0 : playerTileIndex;
+        }
+        let output = `${lines.length} ${playerLine} ${playerTileIndex} D\n`;
+        output += `${-padding} ${-padding} ${maxX - minX + padding} ${maxY - minY + padding}\n`;
+        lines.forEach(line => {
+            output += `${line.length} `;
+            line.forEach((tile, index) => {
+                const normalizedX = tile.location.x - minX;
+                const normalizedY = tile.location.y - minY;
+                const gridPosition = `${normalizedX} ${normalizedY}`;
+                let direction;
+                switch (tile.nextTileDirection) {
+                    case Direction.North:
+                        direction = 'U';
+                        break;
+                    case Direction.South:
+                        direction = 'D';
+                        break;
+                    case Direction.East:
+                        direction = 'R';
+                        break;
+                    case Direction.West:
+                        direction = 'L';
+                        break;
+                    default:
+                        direction = '';
+                        break;
+                }
+                const tileType = TileType[tile.type];
+                // For the last tile, exclude the direction of the next tile
+                if (index === 0) {
+                    output += `${gridPosition} ${direction}${tileType} `;
+                }
+                else if (index === line.length - 1) {
+                    output += `${tileType}\n`;
+                }
+                else {
+                    output += `${direction}${tileType} `;
+                }
+            });
+        });
+        return output;
+    }
+    importLines(input) {
+        this.tiles.forEach(row => {
+            row.forEach(tile => {
+                this.removeAt(tile.location.x, tile.location.y);
+            });
+        });
+        this.lines.forEach(line => {
+            line.forEach(tile => {
+                this.removeAt(tile.location.x, tile.location.y);
+            });
+        });
+        this.tiles = [];
+        this.lines = [];
+        this.initTileMap();
+        let inputLines = input.replace(/(\r)/gm, "").split('\n');
+        let numberOfLines = parseInt(inputLines[0]);
+        let [minX, minY, maxX, maxY] = inputLines[1].split(' ');
+        let minXnum = 50 - Number(minX);
+        let minYnum = 50 - Number(minY);
+        for (let i = 1; i <= numberOfLines + 1; i++) {
+            this.lines.push([]);
+            this.isDrawing = true;
+            if (i < 2)
+                continue; // skip the camera position line
+            let lineData = inputLines[i].split(' ');
+            let numberOfTiles = parseInt(lineData[0]);
+            let x = parseInt(lineData[1]) + minXnum; // normalize x
+            let y = parseInt(lineData[2]) + minYnum; // normalize y
+            for (let j = 3; j < 3 + numberOfTiles; j++) {
+                let tileData = lineData[j];
+                let type = tileData.slice(-1);
+                if (tileData.length == 1) {
+                    type = tileData[0];
+                }
+                let tile = new Tile(TileType[type], { x, y }, i);
+                this.placeAt(x, y, TileType[type]);
+                if (tileData.length == 2) {
+                    switch (tileData.slice(0, -1)) {
+                        case 'U':
+                            y--;
+                            break;
+                        case 'D':
+                            if (j == 3) {
+                                this.addToBeginning = true;
+                            }
+                            y++;
+                            break;
+                        case 'R':
+                            x++;
+                            break;
+                        case 'L':
+                            if (j == 3) {
+                                this.addToBeginning = true;
+                            }
+                            x--;
+                            break;
+                    }
+                }
+                this.lines[i - 2].push(tile);
+            }
+            this.addToBeginning = false;
+            this.isDrawing = false;
+        }
     }
 }

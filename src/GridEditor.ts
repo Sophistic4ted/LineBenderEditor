@@ -247,10 +247,6 @@ export class GridEditor extends Phaser.Scene {
 
   private processOccupiedField(y: number, x: number, type: TileType, isStart: boolean = false, lineIndex: number = 0) {
     const tile = this.tiles[y][x];
-    if (!this.isCorrectMovement(x, y)) {
-      this.tiles[y][x].setLine(undefined);
-      return
-    }
     if (tile !== undefined) {
       if (tile.type !== type) {
         this.processFieldWithDifferentSprite(y, x, type);
