@@ -1,67 +1,67 @@
 export enum Direction { Up, Right, Down, Left }
 export enum TileType {
-    Grass = 'G',
-    Bricks = 'B',
-    Win = 'W',
-    Swamp = 'S',
-    Key = 'K',
-    Door = 'D',
-    Trash = 'T',
-    Player = 'P',
-    None = 'None'
+  Grass = 'G',
+  Bricks = 'B',
+  Win = 'W',
+  Swamp = 'S',
+  Key = 'K',
+  Door = 'D',
+  Trash = 'T',
+  Player = 'P',
+  None = 'None'
 }
 export enum Direction {
-    North = 'North',
-    South = 'South',
-    East = 'East',
-    West = 'West',
+  North = 'North',
+  South = 'South',
+  East = 'East',
+  West = 'West',
 }
 export class Tile {
 
-    constructor(public type: TileType,
-        public location: { x: number, y: number },
-        public line: number | undefined = undefined,
-        public sprite?: Phaser.GameObjects.Sprite,
-        public nextTileDirection?: Direction,
-        public previousTileDirection?: Direction) { }
+  constructor(public type: TileType,
+    public location: { x: number, y: number },
+    public line: number | undefined = undefined,
+    public sprite?: Phaser.GameObjects.Sprite,
+    public nextTileDirection?: Direction,
+    public previousTileDirection?: Direction) { }
 
-    setType(type: TileType) {
-        this.type = type;
-    }
+  setType(type: TileType) {
+    this.type = type;
+  }
 
-    getType() {
-        return this.type;
-    }
+  getType() {
+    return this.type;
+  }
 
-    setSprite(sprite: Phaser.GameObjects.Sprite | undefined) {
-        this.sprite = sprite;
-    }
+  setSprite(sprite: Phaser.GameObjects.Sprite | undefined) {
+    this.sprite = sprite;
+  }
 
-    setNextTileDirection(direction: Direction | undefined) {
-        this.nextTileDirection = direction;
-    }
+  setNextTileDirection(direction: Direction | undefined) {
+    this.nextTileDirection = direction;
+  }
 
-    setPreviousTileDirection(direction: Direction | undefined) {
-        this.previousTileDirection = direction;
-    }
+  setPreviousTileDirection(direction: Direction | undefined) {
+    this.previousTileDirection = direction;
+  }
 
-    setLine(line: number | undefined) {
-        this.line = line;
-    }
+  setLine(line: number | undefined) {
+    this.line = line;
+  }
 
-    getLine(): number | undefined {
-        return this.line;
-    }
+  getLine(): number | undefined {
+    return this.line;
+  }
 
-    getNextTileDirection() {
-        return this.nextTileDirection;
-    }
-    getPreviousTileDirection() {
-        return this.previousTileDirection;
-    }
+  getNextTileDirection() {
+    return this.nextTileDirection;
+  }
+  getPreviousTileDirection() {
+    return this.previousTileDirection;
+  }
 
-    isEmpty(): boolean {
-        return this.type === TileType.None;
-    }
+  isEmpty(): boolean {
+    return this.type === TileType.None;
+  }
 }
 

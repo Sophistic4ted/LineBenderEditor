@@ -3,9 +3,11 @@ import eventsCenter from "./EventsCenter.js";
 import { TileType, Tile, Direction } from "./Tile.js";
 import { ToolHandler } from "./ToolHandler.js";
 import { Player } from "./Player.js";
+import { GridCameraHandler } from "./GridCameraHandler.js";
 class GridEditor extends Phaser.Scene {
     static tileSize = 28;
     static menuWidth = 385;
+    gridCameraHandler = new GridCameraHandler();
     gridTileSize = { width: 100, height: 100 };
     isDragging = false;
     isDrawing = false;
@@ -20,10 +22,7 @@ class GridEditor extends Phaser.Scene {
     player = new Player({ x: 0, y: 0 }, undefined);
     constructor() {
         super({ key: 'GridEditor' });
-        this.worldBounds = {
-            x: this.gridTileSize.width * GridEditor.tileSize,
-            y: this.gridTileSize.height * GridEditor.tileSize
-        };
+        this.worldBounds = new Phaser.Math.Vector2(this.gridTileSize.width * GridEditor.tileSize, this.gridTileSize.height * GridEditor.tileSize);
         this.spriteLoader = new SpriteLoader();
         this.toolHandler = new ToolHandler(this);
     }
@@ -32,9 +31,9 @@ class GridEditor extends Phaser.Scene {
         this.spriteLoader.preloadSprites(this);
     }
     create() {
-        this.input.on('pointerdown', this.handleMouseDown, this);
-        this.input.on('pointermove', this.handleMouseMove, this);
-        this.input.on('pointerup', this.handleMouseUp, this);
+        this.input.on('pointerdown', (pointer) => this.gridCameraHandler.handleMouseDown(this.cameras, pointer));
+        this.input.on('pointermove', (pointer) => this.gridCameraHandler.handleMouseMove(this.cameras, pointer));
+        this.input.on('pointerup', (pointer) => this.gridCameraHandler.handleMouseUp(pointer));
         this.input.on('wheel', this.handleMouseWheel, this);
         this.input.on('pointerdown', this.toolHandler.handlePointerDown.bind(this.toolHandler));
         this.input.on('pointermove', this.toolHandler.handlePointerMove.bind(this.toolHandler));
@@ -60,12 +59,7 @@ class GridEditor extends Phaser.Scene {
         });
         eventsCenter.on('update-tool', this.updateTool, this);
         this.add.grid(0, 0, this.worldBounds.x, this.worldBounds.y, GridEditor.tileSize, GridEditor.tileSize, 0x1a1a1a).setOrigin(0); // Set grid's origin to the top-left corner
-        this.cameras.main.setViewport(GridEditor.menuWidth, 0, this.scale.width - GridEditor.menuWidth, this.scale.height);
-        // Set camera bounds
-        this.cameras.main.setBounds(0, 0, this.worldBounds.x, this.worldBounds.y);
-        // Center the camera
-        this.cameras.main.centerOn(this.worldBounds.x / 2, this.worldBounds.y / 2);
-        this.cameras.main.setZoom(2);
+        this.gridCameraHandler.initCamera(this.cameras, GridEditor.menuWidth, this.worldBounds, this.scale);
     }
     initTileMap() {
         for (let y = 0; y < this.gridTileSize.height; y++) {
@@ -217,89 +211,90 @@ class GridEditor extends Phaser.Scene {
     }
     processOccupiedField(y, x, type, isStart = false) {
         const tile = this.getTile(x, y);
-        if (tile !== undefined) {
-            if (tile.type !== type) {
-                this.processFieldWithDifferentSprite(y, x, type);
+        if (!tile) {
+            return;
+        }
+        if (tile.type !== type) {
+            this.processFieldWithDifferentSprite(y, x, type);
+        }
+        if (isStart && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined) && this.isDrawing && this.tempLineNumber === undefined) {
+            this.tempLineNumber = tile.getLine();
+            if (tile.previousTileDirection === undefined) {
+                this.addToBeginning = true;
             }
-            if (isStart && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined) && this.isDrawing && this.tempLineNumber === undefined) {
-                this.tempLineNumber = tile.getLine();
-                if (tile.previousTileDirection === undefined) {
-                    this.addToBeginning = true;
-                }
-            }
-            if (this.tempLineNumber !== undefined && tile.getLine() !== this.tempLineNumber && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined)) {
-                const tileLine = tile.getLine();
-                if (tileLine !== undefined) {
-                    const tempLine = this.lines[this.tempLineNumber];
-                    if (tempLine !== undefined) {
-                        let lastTile = tempLine.at(tempLine.length - 1);
+        }
+        if (this.tempLineNumber !== undefined && tile.getLine() !== this.tempLineNumber && (tile.previousTileDirection === undefined || tile.nextTileDirection === undefined)) {
+            const tileLine = tile.getLine();
+            if (tileLine !== undefined) {
+                const tempLine = this.lines[this.tempLineNumber];
+                if (tempLine !== undefined) {
+                    let lastTile = tempLine.at(tempLine.length - 1);
+                    if (this.addToBeginning) {
+                        lastTile = tempLine.at(0);
+                    }
+                    if (lastTile !== undefined) {
+                        let direction = this.getDirection(lastTile.location, tile.location);
                         if (this.addToBeginning) {
-                            lastTile = tempLine.at(0);
+                            direction = this.getDirection(tile.location, lastTile.location);
                         }
-                        if (lastTile !== undefined) {
-                            let direction = this.getDirection(lastTile.location, tile.location);
+                        if (direction !== undefined) {
                             if (this.addToBeginning) {
-                                direction = this.getDirection(tile.location, lastTile.location);
+                                if (tile.getPreviousTileDirection() === undefined) {
+                                    tile.setPreviousTileDirection(direction);
+                                    lastTile.setPreviousTileDirection(this.oppositeDirection(direction));
+                                    this.lines[tileLine].forEach(tile => {
+                                        const tempDirection = tile.getNextTileDirection();
+                                        tile.setNextTileDirection(tile.getPreviousTileDirection());
+                                        tile.setPreviousTileDirection(tempDirection);
+                                    });
+                                    tempLine.unshift(...this.lines[tileLine].reverse());
+                                    this.lines.splice(tileLine, 1);
+                                }
+                                else if (tile.getNextTileDirection() === undefined) {
+                                    lastTile.setPreviousTileDirection(this.oppositeDirection(direction));
+                                    tile.setNextTileDirection(direction);
+                                    tempLine.unshift(...this.lines[tileLine]);
+                                    this.lines.splice(tileLine, 1);
+                                }
                             }
-                            if (direction !== undefined) {
-                                if (this.addToBeginning) {
-                                    if (tile.getPreviousTileDirection() === undefined) {
-                                        tile.setPreviousTileDirection(direction);
-                                        lastTile.setPreviousTileDirection(this.oppositeDirection(direction));
-                                        this.lines[tileLine].forEach(tile => {
-                                            const tempDirection = tile.getNextTileDirection();
-                                            tile.setNextTileDirection(tile.getPreviousTileDirection());
-                                            tile.setPreviousTileDirection(tempDirection);
-                                        });
-                                        tempLine.unshift(...this.lines[tileLine].reverse());
-                                        this.lines.splice(tileLine, 1);
-                                    }
-                                    else if (tile.getNextTileDirection() === undefined) {
-                                        lastTile.setPreviousTileDirection(this.oppositeDirection(direction));
-                                        tile.setNextTileDirection(direction);
-                                        tempLine.unshift(...this.lines[tileLine]);
-                                        this.lines.splice(tileLine, 1);
-                                    }
+                            else {
+                                if (tile.getNextTileDirection() === undefined) {
+                                    tile.setNextTileDirection(this.oppositeDirection(direction));
+                                    lastTile.setNextTileDirection(direction);
+                                    this.lines[tileLine].forEach(tile => {
+                                        const tempDirection = tile.getNextTileDirection();
+                                        tile.setNextTileDirection(tile.getPreviousTileDirection());
+                                        tile.setPreviousTileDirection(tempDirection);
+                                    });
+                                    tempLine.push(...this.lines[tileLine].reverse());
+                                    this.lines.splice(tileLine, 1);
+                                }
+                                else if (tile.getPreviousTileDirection() === undefined) {
+                                    lastTile.setNextTileDirection(direction);
+                                    tile.setPreviousTileDirection(this.oppositeDirection(direction));
+                                    tempLine.push(...this.lines[tileLine]);
+                                    this.lines.splice(tileLine, 1);
+                                }
+                            }
+                            this.updateSprite(tile);
+                            this.updateSprite(lastTile);
+                            const lastTileLine = lastTile.getLine();
+                            if (tileLine !== undefined && lastTileLine !== undefined) {
+                                if (tileLine > lastTileLine) {
+                                    tempLine.forEach(tile => tile.line = this.tempLineNumber ? this.tempLineNumber : 0);
                                 }
                                 else {
-                                    if (tile.getNextTileDirection() === undefined) {
-                                        tile.setNextTileDirection(this.oppositeDirection(direction));
-                                        lastTile.setNextTileDirection(direction);
-                                        this.lines[tileLine].forEach(tile => {
-                                            const tempDirection = tile.getNextTileDirection();
-                                            tile.setNextTileDirection(tile.getPreviousTileDirection());
-                                            tile.setPreviousTileDirection(tempDirection);
-                                        });
-                                        tempLine.push(...this.lines[tileLine].reverse());
-                                        this.lines.splice(tileLine, 1);
-                                    }
-                                    else if (tile.getPreviousTileDirection() === undefined) {
-                                        lastTile.setNextTileDirection(direction);
-                                        tile.setPreviousTileDirection(this.oppositeDirection(direction));
-                                        tempLine.push(...this.lines[tileLine]);
-                                        this.lines.splice(tileLine, 1);
-                                    }
-                                }
-                                this.updateSprite(tile);
-                                this.updateSprite(lastTile);
-                                const lastTileLine = lastTile.getLine();
-                                if (tileLine !== undefined && lastTileLine !== undefined) {
-                                    if (tileLine > lastTileLine) {
-                                        tempLine.forEach(tile => tile.line = this.tempLineNumber ? this.tempLineNumber : 0);
-                                    }
-                                    else {
-                                        tempLine.forEach(tile => tile.line = tileLine);
-                                    }
+                                    tempLine.forEach(tile => tile.line = tileLine);
                                 }
                             }
                         }
                     }
                 }
             }
-            if (tile.getLine() !== undefined) {
-                if (this.tempLineNumber !== tile.getLine() && this.lines.length - 1 !== tile.getLine()) {
-                    this.isDrawing = false;
-                }
+        }
+        if (tile.getLine() !== undefined) {
+            if (this.tempLineNumber !== tile.getLine() && this.lines.length - 1 !== tile.getLine()) {
+                this.isDrawing = false;
             }
         }
     }
@@ -400,50 +395,8 @@ class GridEditor extends Phaser.Scene {
         this.player.sprite?.destroy(); // remove sprite from scene
         this.player.sprite = undefined; // remove sprite reference
     }
-    handleMouseDown(pointer) {
-        const camera = this.cameras.main;
-        if (pointer.middleButtonDown() &&
-            pointer.x > camera.x && pointer.x < camera.x + camera.width &&
-            pointer.y > camera.y && pointer.y < camera.y + camera.height) {
-            this.isDragging = true;
-            this.dragPosition.set(pointer.x, pointer.y);
-        }
-    }
-    handleMouseMove(pointer) {
-        if (pointer.middleButtonDown()) {
-            const camera = this.cameras.main;
-            if (pointer.x < camera.x || pointer.x > camera.x + camera.width ||
-                pointer.y < camera.y || pointer.y > camera.y + camera.height) {
-                this.isDragging = false;
-            }
-            else {
-                if (this.isDragging) {
-                    const deltaX = this.dragPosition.x - pointer.x;
-                    const deltaY = this.dragPosition.y - pointer.y;
-                    this.cameras.main.scrollX += deltaX;
-                    this.cameras.main.scrollY += deltaY;
-                    this.dragPosition.set(pointer.x, pointer.y);
-                }
-            }
-        }
-    }
-    handleMouseUp(pointer) {
-        if (pointer.middleButtonReleased()) {
-            this.isDragging = false;
-        }
-    }
     handleMouseWheel(pointer, gameObjects, deltaX, deltaY, deltaZ) {
-        const camera = this.cameras.main;
-        if (pointer.x < camera.x || pointer.x > camera.x + camera.width ||
-            pointer.y < camera.y || pointer.y > camera.y + camera.height) {
-            return;
-        }
-        let newZoom = this.cameras.main.zoom - deltaY * 0.001; // change this to smaller value for smoother zoom
-        const maxZoomX = this.cameras.main.width / this.worldBounds.x;
-        const maxZoomY = this.cameras.main.height / this.worldBounds.y;
-        const maxZoom = Math.max(maxZoomX, maxZoomY);
-        newZoom = Phaser.Math.Clamp(newZoom, maxZoom, 3);
-        this.cameras.main.zoomTo(newZoom, 200); // Use zoomTo for smoother transition
+        this.gridCameraHandler.handleMouseWheel(this.cameras, pointer, deltaY, this.worldBounds);
     }
     handleResize(gameSize, baseSize, displaySize, resolution) {
         this.cameras.main.setViewport(GridEditor.menuWidth, 0, gameSize.width - GridEditor.menuWidth, gameSize.height);

@@ -3,17 +3,20 @@ import eventsCenter from "./EventsCenter.js";
 import { TileType, Tile, Direction } from "./Tile.js";
 import { ToolHandler } from "./ToolHandler.js";
 import { Player } from "./Player.js";
+import { GridCameraHandler } from "./GridCameraHandler.js";
 
 export class GridEditor extends Phaser.Scene {
   public static readonly tileSize: number = 28;
   private static readonly menuWidth: number = 385;
+
+  private gridCameraHandler = new GridCameraHandler();
 
   private gridTileSize: { width: number; height: number } = { width: 100, height: 100 };
   private isDragging: boolean = false;
   public isDrawing: boolean = false;
 
   private dragPosition: Phaser.Math.Vector2 = new Phaser.Math.Vector2();
-  private worldBounds: { x: number; y: number };
+  private worldBounds: Phaser.Math.Vector2;
   private spriteLoader: SpriteLoader;
   private tiles: Tile[][] = [];
   private toolHandler: ToolHandler;
@@ -24,10 +27,10 @@ export class GridEditor extends Phaser.Scene {
 
   constructor() {
     super({ key: 'GridEditor' });
-    this.worldBounds = {
-      x: this.gridTileSize.width * GridEditor.tileSize,
-      y: this.gridTileSize.height * GridEditor.tileSize
-    };
+    this.worldBounds = new Phaser.Math.Vector2(
+      this.gridTileSize.width * GridEditor.tileSize,
+      this.gridTileSize.height * GridEditor.tileSize
+    );
     this.spriteLoader = new SpriteLoader();
     this.toolHandler = new ToolHandler(this);
   }
@@ -38,9 +41,9 @@ export class GridEditor extends Phaser.Scene {
   }
 
   create() {
-    this.input.on('pointerdown', this.handleMouseDown, this);
-    this.input.on('pointermove', this.handleMouseMove, this);
-    this.input.on('pointerup', this.handleMouseUp, this);
+    this.input.on('pointerdown', (pointer: Phaser.Input.Pointer) => this.gridCameraHandler.handleMouseDown(this.cameras, pointer));
+    this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => this.gridCameraHandler.handleMouseMove(this.cameras, pointer));
+    this.input.on('pointerup', (pointer: Phaser.Input.Pointer) => this.gridCameraHandler.handleMouseUp(pointer));
     this.input.on('wheel', this.handleMouseWheel, this);
     this.input.on('pointerdown', this.toolHandler.handlePointerDown.bind(this.toolHandler))
     this.input.on('pointermove', this.toolHandler.handlePointerMove.bind(this.toolHandler))
@@ -67,7 +70,7 @@ export class GridEditor extends Phaser.Scene {
       }
     });
 
-    eventsCenter.on('update-tool', this.updateTool, this)
+    eventsCenter.on('update-tool', this.updateTool, this);
     this.add.grid(
       0,
       0,
@@ -78,16 +81,10 @@ export class GridEditor extends Phaser.Scene {
       0x1a1a1a,
     ).setOrigin(0); // Set grid's origin to the top-left corner
 
-    this.cameras.main.setViewport(GridEditor.menuWidth, 0, this.scale.width - GridEditor.menuWidth, this.scale.height);
-    // Set camera bounds
-    this.cameras.main.setBounds(0, 0, this.worldBounds.x, this.worldBounds.y);
-
-    // Center the camera
-    this.cameras.main.centerOn(this.worldBounds.x / 2, this.worldBounds.y / 2);
-    this.cameras.main.setZoom(2);
+    this.gridCameraHandler.initCamera(this.cameras, GridEditor.menuWidth, this.worldBounds, this.scale);
   }
 
-  initTileMap() {
+  private initTileMap() {
     for (let y = 0; y < this.gridTileSize.height; y++) {
       let row: Tile[] = [];
       for (let x = 0; x < this.gridTileSize.width; x++) {
@@ -105,7 +102,7 @@ export class GridEditor extends Phaser.Scene {
 
   placeAt(x: number, y: number, type: TileType, isStart: boolean = false) {
     const tile = this.getTile(x, y);
-    if(!tile) { return; }
+    if (!tile) { return; }
     if (tile.isEmpty()) {
       this.processEmptyField(tile, type, isStart);
     } else {
@@ -166,7 +163,7 @@ export class GridEditor extends Phaser.Scene {
     }
   }
 
-  isCorrectMovement(x: number, y: number): boolean {
+  private isCorrectMovement(x: number, y: number): boolean {
     const line = this.getTile(x, y).getLine();
     if (line !== undefined) {
       if (this.lines[line]?.length > 0) {
@@ -182,7 +179,7 @@ export class GridEditor extends Phaser.Scene {
     return true;
   }
 
-  checkContinuity(from: { x: number, y: number }, to: { x: number, y: number }): boolean {
+  private checkContinuity(from: { x: number, y: number }, to: { x: number, y: number }): boolean {
     const dx = Math.abs(to.x - from.x);
     const dy = Math.abs(to.y - from.y);
 
@@ -193,7 +190,7 @@ export class GridEditor extends Phaser.Scene {
     return false;
   }
 
-  getDirection(from: { x: number, y: number }, to: { x: number, y: number }): Direction | undefined {
+  private getDirection(from: { x: number, y: number }, to: { x: number, y: number }): Direction | undefined {
     if (from.x === to.x) {
       return from.y < to.y ? Direction.South : Direction.North;
     } else if (from.y === to.y) {
@@ -203,7 +200,7 @@ export class GridEditor extends Phaser.Scene {
     }
   }
 
-  getSpriteData(tileType: TileType, previousDirection: Direction | undefined, nextDirection: Direction | undefined) {
+  private getSpriteData(tileType: TileType, previousDirection: Direction | undefined, nextDirection: Direction | undefined) {
     let tileTypeString = tileType;
     const directionMap = {
       [`${Direction.West}${Direction.North}`]: { name: `${tileTypeString}WN`, rotation: 0 },
@@ -234,7 +231,7 @@ export class GridEditor extends Phaser.Scene {
     return value;
   }
 
-  oppositeDirection(direction: Direction): Direction {
+  private oppositeDirection(direction: Direction): Direction {
     switch (direction) {
       case Direction.North:
         return Direction.South;
@@ -246,14 +243,14 @@ export class GridEditor extends Phaser.Scene {
         return Direction.East;
     }
   }
-  
+
   private getTile(x: number, y: number): Tile {
     return this.tiles.at(y)?.at(x) as Tile; // TODO: remove "as Tile" and fix every possible undefined errors
   }
 
   private processOccupiedField(y: number, x: number, type: TileType, isStart: boolean = false): void {
     const tile = this.getTile(x, y);
-    if(!tile) { return; }
+    if (!tile) { return; }
     if (tile.type !== type) {
       this.processFieldWithDifferentSprite(y, x, type);
     }
@@ -429,9 +426,9 @@ export class GridEditor extends Phaser.Scene {
     tile.sprite = sprite;
   }
 
-  placePlayer(x: number, y: number): void {
+  public placePlayer(x: number, y: number): void {
     const tile = this.getTile(x, y);
-    if(!tile) { return; }
+    if (!tile) { return; }
     if (tile.sprite !== undefined && tile.getType() !== TileType.Key && tile.getType() !== TileType.Bricks) {
       this.player.location.x = tile.location.x;
       this.player.location.y = tile.location.y;
@@ -439,67 +436,13 @@ export class GridEditor extends Phaser.Scene {
     }
   }
 
-  removePlayer() {
+  public removePlayer() {
     this.player.sprite?.destroy();  // remove sprite from scene
     this.player.sprite = undefined;  // remove sprite reference
   }
 
-  private handleMouseDown(pointer: Phaser.Input.Pointer) {
-    const camera = this.cameras.main;
-    if (
-      pointer.middleButtonDown() &&
-      pointer.x > camera.x && pointer.x < camera.x + camera.width &&
-      pointer.y > camera.y && pointer.y < camera.y + camera.height
-    ) {
-      this.isDragging = true;
-      this.dragPosition.set(pointer.x, pointer.y);
-    }
-  }
-
-  private handleMouseMove(pointer: Phaser.Input.Pointer) {
-    if (pointer.middleButtonDown()) {
-      const camera = this.cameras.main;
-      if (
-        pointer.x < camera.x || pointer.x > camera.x + camera.width ||
-        pointer.y < camera.y || pointer.y > camera.y + camera.height
-      ) {
-        this.isDragging = false;
-      } else {
-        if (this.isDragging) {
-          const deltaX = this.dragPosition.x - pointer.x;
-          const deltaY = this.dragPosition.y - pointer.y;
-          this.cameras.main.scrollX += deltaX;
-          this.cameras.main.scrollY += deltaY;
-          this.dragPosition.set(pointer.x, pointer.y);
-        }
-      }
-    }
-  }
-
-  private handleMouseUp(pointer: Phaser.Input.Pointer) {
-    if (pointer.middleButtonReleased()) {
-      this.isDragging = false;
-    }
-  }
-
   private handleMouseWheel(pointer: Phaser.Input.Pointer, gameObjects: any[], deltaX: number, deltaY: number, deltaZ: number) {
-    const camera = this.cameras.main;
-    if (
-      pointer.x < camera.x || pointer.x > camera.x + camera.width ||
-      pointer.y < camera.y || pointer.y > camera.y + camera.height
-    ) {
-      return;
-    }
-
-    let newZoom = this.cameras.main.zoom - deltaY * 0.001; // change this to smaller value for smoother zoom
-
-    const maxZoomX = this.cameras.main.width / this.worldBounds.x;
-    const maxZoomY = this.cameras.main.height / this.worldBounds.y;
-    const maxZoom = Math.max(maxZoomX, maxZoomY);
-
-    newZoom = Phaser.Math.Clamp(newZoom, maxZoom, 3);
-
-    this.cameras.main.zoomTo(newZoom, 200); // Use zoomTo for smoother transition
+    this.gridCameraHandler.handleMouseWheel(this.cameras, pointer, deltaY, this.worldBounds);
   }
 
 
