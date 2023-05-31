@@ -1,7 +1,6 @@
 import { TileSelector } from "./TileSelector.js";
 import { GridEditor } from "./GridEditor.js";
 import { SpriteLoader } from "./SpriteLoader.js";
-import { TileType } from "./Tile.js";
 
 window.onload = () => {
   const config: Phaser.Types.Core.GameConfig = {

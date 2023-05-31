@@ -1,5 +1,15 @@
-export enum Direction { U, R, D, L }
-export enum TileType { G, B, W, S, K, D, T, P, None }
+export enum Direction { Up, Right, Down, Left }
+export enum TileType {
+    Grass = 'G',
+    Bricks = 'B',
+    Win = 'W',
+    Swamp = 'S',
+    Key = 'K',
+    Door = 'D',
+    Trash = 'T',
+    Player = 'P',
+    None = 'None'
+}
 export enum Direction {
     North = 'North',
     South = 'South',
@@ -39,7 +49,7 @@ export class Tile {
         this.line = line;
     }
 
-    getLine() : number | undefined{
+    getLine(): number | undefined {
         return this.line;
     }
 
@@ -48,6 +58,10 @@ export class Tile {
     }
     getPreviousTileDirection() {
         return this.previousTileDirection;
-    }   
+    }
+
+    isEmpty(): boolean {
+        return this.type === TileType.None;
+    }
 }
 

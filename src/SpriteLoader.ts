@@ -21,7 +21,7 @@ const spriteData = [
   { id: "D", xIndex: 0, yIndex: 4 },
   { id: "DWN", xIndex: 1, yIndex: 4 },
   { id: "DUU", xIndex: 2, yIndex: 4 },
-  { id: "DUN", xIndex: 3, yIndex: 4},
+  { id: "DUN", xIndex: 3, yIndex: 4 },
 
   { id: "K", xIndex: 0, yIndex: 5 },
   { id: "KWN", xIndex: 1, yIndex: 5 },
@@ -52,11 +52,11 @@ export class SpriteLoader {
     });
   }
 
-  getSpriteFrameById(id: TileType): number | undefined{
-    return spriteIndices.get(TileType[id]);
+  getSpriteFrameByTileType(id: TileType): number | undefined {
+    return spriteIndices.get(id);
   }
 
-  getSpriteFrameByName(name: string): number | undefined{
+  getSpriteFrameByName(name: string): number | undefined {
     return spriteIndices.get(name);
   }
 

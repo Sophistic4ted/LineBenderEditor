@@ -1,6 +1,5 @@
 import { SpriteLoader } from "./SpriteLoader.js";
-import { TileType, Tile } from "./Tile.js";
-import { GridEditor } from "./GridEditor.js";
+import { TileType } from "./Tile.js";
 import eventsCenter from "./EventsCenter.js";
 
 export class TileSelector extends Phaser.Scene {
@@ -13,11 +12,7 @@ export class TileSelector extends Phaser.Scene {
   constructor() {
     super({ key: 'TileSelector' });
     this.spriteLoader = new SpriteLoader();
-    this.tileTypes = [TileType.G, TileType.B, TileType.W, TileType.S, TileType.K, TileType.D, TileType.T, TileType.P]
-  }
-
-  preload() {
-    this.spriteLoader.preloadSprites(this);
+    this.tileTypes = [TileType.Grass, TileType.Bricks, TileType.Win, TileType.Swamp, TileType.Key, TileType.Door, TileType.Trash, TileType.Player];
   }
 
   create() {
@@ -35,9 +30,9 @@ export class TileSelector extends Phaser.Scene {
     let yPosition = padding; // starting y position
     let xPosition = padding; // starting x position
     let countX = 0; // count of sprites in the current row
-    
+
     this.tileTypes.forEach((tileType, index) => {
-      const spriteFrame = this.spriteLoader.getSpriteFrameById(tileType);
+      const spriteFrame = this.spriteLoader.getSpriteFrameByTileType(tileType);
 
       // Create a shadow sprite with a dark tint and an offset
       let shadow = this.add.sprite(xPosition + 3 + spriteSize / 2, yPosition + 3 + spriteSize / 2, 'spritesheet', spriteFrame)
@@ -58,7 +53,7 @@ export class TileSelector extends Phaser.Scene {
       frame.lineStyle(2, 0xffffff);
       frame.strokeRect(sprite.x - frameSize / 2, sprite.y - frameSize / 2, frameSize, frameSize);
       frame.alpha = (tileType == this.selectedTile) ? 1 : 0;
-      
+
       this.tileData.set(tileType, { frame, shadow, sprite })
       sprite.on('pointerdown', () => {
         this.selectTile(tileType, spriteScale);
@@ -90,9 +85,9 @@ export class TileSelector extends Phaser.Scene {
       if (previousTileData?.frame) previousTileData.frame.alpha = 0;
       previousTileData?.sprite.setScale(spriteScale);
       previousTileData?.shadow.setScale(spriteScale);
-      }
+    }
     this.selectedTile = tileType;
-    
+
     let selectedTileData = this.tileData.get(this.selectedTile);
     // Show the frame of the selected sprite
     if (selectedTileData?.frame) selectedTileData.frame.alpha = 1;

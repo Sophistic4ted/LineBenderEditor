@@ -1,10 +1,10 @@
-import { TileType, Tile } from "./Tile.js";
+import { TileType } from "./Tile.js";
 import { GridEditor } from "./GridEditor.js";
 
 export class ToolHandler {
     private currentTool: TileType = TileType.None
     private gridEditor: GridEditor;
-    
+
     constructor(gridEditor: GridEditor) {
         this.gridEditor = gridEditor;
     }
@@ -20,9 +20,9 @@ export class ToolHandler {
     }
 
     public handlePointerMove(pointer: Phaser.Input.Pointer) {
-        if (this.gridEditor.isDrawing && pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.T) {
+        if (this.gridEditor.isDrawing && pointer.leftButtonDown() && this.isInBounds(this.gridEditor.cameras.main, pointer) && this.currentTool !== TileType.Trash) {
             this.useTool(pointer);
-        } else if (pointer.leftButtonDown() && this.currentTool === TileType.T){
+        } else if (pointer.leftButtonDown() && this.currentTool === TileType.Trash) {
             this.useTool(pointer);
         }
     }
@@ -44,24 +44,23 @@ export class ToolHandler {
 
         const worldPoint = pointer.positionToCamera(camera) as Phaser.Math.Vector2;
 
-        const x = Math.floor(worldPoint.x / this.gridEditor.tileSize);
-        const y = Math.floor(worldPoint.y / this.gridEditor.tileSize);
-        switch (TileType[this.currentTool]) {
-            case 'G':
-            case 'B':
-            case 'W':
-            case 'S':
-            case 'K':
-            case 'OD':
-            case 'D':
+        const x = Math.floor(worldPoint.x / GridEditor.tileSize);
+        const y = Math.floor(worldPoint.y / GridEditor.tileSize);
+        switch (this.currentTool) {
+            case TileType.Grass:
+            case TileType.Bricks:
+            case TileType.Win:
+            case TileType.Swamp:
+            case TileType.Key:
+            case TileType.Door:
                 this.gridEditor.isDrawing = true;
                 this.gridEditor.placeAt(x, y, this.currentTool, isStart);
                 break;
-            case 'T':
+            case TileType.Trash:
                 this.gridEditor.removeAt(x, y);
                 break;
-            case 'P':
-                this.gridEditor.removePlayer(x, y);
+            case TileType.Player:
+                this.gridEditor.removePlayer();
                 this.gridEditor.placePlayer(x, y);
                 break;
 

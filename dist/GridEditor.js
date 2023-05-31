@@ -3,9 +3,9 @@ import eventsCenter from "./EventsCenter.js";
 import { TileType, Tile, Direction } from "./Tile.js";
 import { ToolHandler } from "./ToolHandler.js";
 import { Player } from "./Player.js";
-export class GridEditor extends Phaser.Scene {
-    tileSize = 28;
-    menuWidth = 385;
+class GridEditor extends Phaser.Scene {
+    static tileSize = 28;
+    static menuWidth = 385;
     gridTileSize = { width: 100, height: 100 };
     isDragging = false;
     isDrawing = false;
@@ -21,8 +21,8 @@ export class GridEditor extends Phaser.Scene {
     constructor() {
         super({ key: 'GridEditor' });
         this.worldBounds = {
-            x: this.gridTileSize.width * this.tileSize,
-            y: this.gridTileSize.height * this.tileSize
+            x: this.gridTileSize.width * GridEditor.tileSize,
+            y: this.gridTileSize.height * GridEditor.tileSize
         };
         this.spriteLoader = new SpriteLoader();
         this.toolHandler = new ToolHandler(this);
@@ -59,8 +59,8 @@ export class GridEditor extends Phaser.Scene {
             }
         });
         eventsCenter.on('update-tool', this.updateTool, this);
-        this.add.grid(0, 0, this.worldBounds.x, this.worldBounds.y, this.tileSize, this.tileSize, 0x1a1a1a).setOrigin(0); // Set grid's origin to the top-left corner
-        this.cameras.main.setViewport(this.menuWidth, 0, this.scale.width - this.menuWidth, this.scale.height);
+        this.add.grid(0, 0, this.worldBounds.x, this.worldBounds.y, GridEditor.tileSize, GridEditor.tileSize, 0x1a1a1a).setOrigin(0); // Set grid's origin to the top-left corner
+        this.cameras.main.setViewport(GridEditor.menuWidth, 0, this.scale.width - GridEditor.menuWidth, this.scale.height);
         // Set camera bounds
         this.cameras.main.setBounds(0, 0, this.worldBounds.x, this.worldBounds.y);
         // Center the camera
@@ -82,8 +82,12 @@ export class GridEditor extends Phaser.Scene {
         this.toolHandler.setTool(tool);
     }
     placeAt(x, y, type, isStart = false) {
-        if (this.tiles[y][x].sprite === undefined) {
-            this.processEmptyField(x, y, type, isStart);
+        const tile = this.getTile(x, y);
+        if (!tile) {
+            return;
+        }
+        if (tile.isEmpty()) {
+            this.processEmptyField(tile, type, isStart);
         }
         else {
             this.processOccupiedField(y, x, type, isStart);
@@ -94,7 +98,7 @@ export class GridEditor extends Phaser.Scene {
             console.error("Attempted to remove tile out of grid bounds");
             return;
         }
-        const tile = this.tiles[y][x];
+        const tile = this.getTile(x, y);
         const lineIndex = tile.getLine();
         // If the tile is already removed, just return
         if (tile.getType() === TileType.None || lineIndex === undefined) {
@@ -134,7 +138,7 @@ export class GridEditor extends Phaser.Scene {
         }
     }
     isCorrectMovement(x, y) {
-        const line = this.tiles[y][x].getLine();
+        const line = this.getTile(x, y).getLine();
         if (line !== undefined) {
             if (this.lines[line]?.length > 0) {
                 let lastTile = this.lines[line][this.lines[line].length - 1];
@@ -169,7 +173,7 @@ export class GridEditor extends Phaser.Scene {
         }
     }
     getSpriteData(tileType, previousDirection, nextDirection) {
-        let tileTypeString = TileType[tileType];
+        let tileTypeString = tileType;
         const directionMap = {
             [`${Direction.West}${Direction.North}`]: { name: `${tileTypeString}WN`, rotation: 0 },
             [`${Direction.North}${Direction.East}`]: { name: `${tileTypeString}WN`, rotation: 90 },
@@ -204,12 +208,15 @@ export class GridEditor extends Phaser.Scene {
                 return Direction.North;
             case Direction.East:
                 return Direction.West;
-            case Direction.West:
+            default:
                 return Direction.East;
         }
     }
-    processOccupiedField(y, x, type, isStart = false, lineIndex = 0) {
-        const tile = this.tiles[y][x];
+    getTile(x, y) {
+        return this.tiles.at(y)?.at(x); // TODO: remove "as Tile" and fix every possible undefined errors
+    }
+    processOccupiedField(y, x, type, isStart = false) {
+        const tile = this.getTile(x, y);
         if (tile !== undefined) {
             if (tile.type !== type) {
                 this.processFieldWithDifferentSprite(y, x, type);
@@ -297,10 +304,9 @@ export class GridEditor extends Phaser.Scene {
         }
     }
     processFieldWithDifferentSprite(y, x, type) {
-        this.tiles[y][x].sprite?.destroy(); // remove sprite from scene
-        this.tiles[y][x].sprite = undefined; // remove sprite reference
-        this.spriteLoader.getSpriteFrameById(type);
-        this.createSprite(x, y, type);
+        this.getTile(x, y).sprite?.destroy(); // remove sprite from scene
+        this.getTile(x, y).sprite = undefined; // remove sprite reference
+        this.createSprite(this.getTile(x, y), type);
     }
     isWithinBounds(x, y) {
         return x >= 0 && y >= 0 && x < this.gridTileSize.width && y < this.gridTileSize.height;
@@ -312,50 +318,48 @@ export class GridEditor extends Phaser.Scene {
         }
         return spriteFrame;
     }
-    processEmptyField(x, y, type, isStart = false) {
-        const tile = this.tiles[y][x];
+    processEmptyField(tile, type, isStart = false) {
         if (this.isDrawing) {
             if (isStart) {
                 this.lines.push([]);
             }
-            const line = this.tempLineNumber !== undefined ? this.tempLineNumber : (this.lines.length - 1);
-            this.tiles[y][x].setLine(line);
-            if (!this.isCorrectMovement(x, y)) {
-                this.tiles[y][x].setLine(undefined);
+            const lineNumber = this.tempLineNumber ?? (this.lines.length - 1);
+            tile.setLine(lineNumber);
+            if (!this.isCorrectMovement(tile.location.x, tile.location.y)) {
+                tile.setLine(undefined);
                 return;
             }
             if (this.addToBeginning) {
-                this.lines[line].unshift(this.tiles[y][x]);
+                this.lines[lineNumber].unshift(tile);
             }
             else {
-                this.lines[line].push(this.tiles[y][x]);
+                this.lines[lineNumber].push(tile);
             }
-            this.updateNeighbours(x, y);
-            this.createSprite(x, y, type);
+            this.updateNeighboursOfTile(tile);
+            this.createSprite(tile, type);
         }
     }
-    updateNeighbours(x, y) {
-        const tile = this.tiles[y][x];
-        const line = this.tiles[y][x].getLine();
+    updateNeighboursOfTile(tile) {
+        const line = tile.getLine();
         if (line !== undefined && this.lines[line].length > 1) {
             if (this.addToBeginning) {
                 const nextTile = this.lines[line][1];
-                const direction = this.getDirection({ x: x, y: y }, nextTile.location);
+                const direction = this.getDirection(tile.location, nextTile.location);
                 if (direction) {
                     nextTile.setPreviousTileDirection(this.oppositeDirection(direction));
-                    this.tiles[y][x].setNextTileDirection(direction);
+                    tile.setNextTileDirection(direction);
                     this.updateSprite(nextTile);
-                    this.updateSprite(this.tiles[y][x]);
+                    this.updateSprite(tile);
                 }
             }
             else {
                 const lastTile = this.lines[line][this.lines[line].length - 2];
-                const direction = this.getDirection(lastTile.location, { x: x, y: y });
+                const direction = this.getDirection(lastTile.location, tile.location);
                 if (direction) {
                     lastTile.setNextTileDirection(direction);
-                    this.tiles[y][x].setPreviousTileDirection(this.oppositeDirection(direction));
+                    tile.setPreviousTileDirection(this.oppositeDirection(direction));
                     this.updateSprite(lastTile);
-                    this.updateSprite(this.tiles[y][x]);
+                    this.updateSprite(tile);
                 }
             }
         }
@@ -371,25 +375,28 @@ export class GridEditor extends Phaser.Scene {
             }
         }
     }
-    createSprite(x, y, type) {
+    createSprite(tile, type) {
         // Finally, we create the sprite and set its rotation.
-        const previousDirection = this.tiles[y][x].getPreviousTileDirection();
-        const nextDirection = this.tiles[y][x].getNextTileDirection();
+        const previousDirection = tile.getPreviousTileDirection();
+        const nextDirection = tile.getNextTileDirection();
         const { name: spriteName, rotation } = this.getSpriteData(type, previousDirection, nextDirection);
         const spriteFrame = this.getSpriteFrame(spriteName);
-        const lineNumber = this.tiles[y][x].getLine();
-        const sprite = this.add.sprite(x * this.tileSize + this.tileSize / 2, y * this.tileSize + this.tileSize / 2, 'spritesheet', spriteFrame).setRotation(rotation).setOrigin(0.5);
-        this.tiles[y][x].setType(type);
-        this.tiles[y][x].sprite = sprite;
+        const sprite = this.add.sprite(tile.location.x * GridEditor.tileSize + GridEditor.tileSize / 2, tile.location.y * GridEditor.tileSize + GridEditor.tileSize / 2, 'spritesheet', spriteFrame).setRotation(rotation).setOrigin(0.5);
+        tile.setType(type);
+        tile.sprite = sprite;
     }
     placePlayer(x, y) {
-        if (this.tiles[y][x].sprite !== undefined && TileType[this.tiles[y][x].getType()] !== "K" && TileType[this.tiles[y][x].getType()] !== "B") {
-            this.player.location.x = x;
-            this.player.location.y = y;
-            this.player.sprite = this.add.sprite(x * this.tileSize + this.tileSize / 2, y * this.tileSize + this.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameById(TileType.P)).setOrigin(0.5);
+        const tile = this.getTile(x, y);
+        if (!tile) {
+            return;
+        }
+        if (tile.sprite !== undefined && tile.getType() !== TileType.Key && tile.getType() !== TileType.Bricks) {
+            this.player.location.x = tile.location.x;
+            this.player.location.y = tile.location.y;
+            this.player.sprite = this.add.sprite(tile.location.x * GridEditor.tileSize + GridEditor.tileSize / 2, tile.location.y * GridEditor.tileSize + GridEditor.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameByTileType(TileType.Player)).setOrigin(0.5);
         }
     }
-    removePlayer(x, y) {
+    removePlayer() {
         this.player.sprite?.destroy(); // remove sprite from scene
         this.player.sprite = undefined; // remove sprite reference
     }
@@ -439,7 +446,7 @@ export class GridEditor extends Phaser.Scene {
         this.cameras.main.zoomTo(newZoom, 200); // Use zoomTo for smoother transition
     }
     handleResize(gameSize, baseSize, displaySize, resolution) {
-        this.cameras.main.setViewport(this.menuWidth, 0, gameSize.width - this.menuWidth, gameSize.height); // ...
+        this.cameras.main.setViewport(GridEditor.menuWidth, 0, gameSize.width - GridEditor.menuWidth, gameSize.height);
     }
     exportLines() {
         let minX = Number.MAX_SAFE_INTEGER;
@@ -506,7 +513,7 @@ export class GridEditor extends Phaser.Scene {
                         direction = '';
                         break;
                 }
-                const tileType = TileType[tile.type];
+                const tileType = tile.type;
                 // For the last tile, exclude the direction of the next tile
                 if (index === 0) {
                     output += `${gridPosition} ${direction}${tileType} `;
@@ -586,3 +593,4 @@ export class GridEditor extends Phaser.Scene {
         }
     }
 }
+export { GridEditor };
