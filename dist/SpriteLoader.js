@@ -1,4 +1,3 @@
-import { TileType } from "./Tile.js";
 const spriteSheetUrl = "sprites_2.png";
 const rowNumber = 16;
 const spriteData = [
@@ -41,8 +40,8 @@ export class SpriteLoader {
             spacing: 1,
         });
     }
-    getSpriteFrameById(id) {
-        return spriteIndices.get(TileType[id]);
+    getSpriteFrameByTileType(id) {
+        return spriteIndices.get(id);
     }
     getSpriteFrameByName(name) {
         return spriteIndices.get(name);

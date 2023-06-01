@@ -10,10 +10,7 @@ export class TileSelector extends Phaser.Scene {
     constructor() {
         super({ key: 'TileSelector' });
         this.spriteLoader = new SpriteLoader();
-        this.tileTypes = [TileType.G, TileType.B, TileType.W, TileType.S, TileType.K, TileType.D, TileType.T, TileType.P];
-    }
-    preload() {
-        this.spriteLoader.preloadSprites(this);
+        this.tileTypes = [TileType.Grass, TileType.Bricks, TileType.Win, TileType.Swamp, TileType.Key, TileType.Door, TileType.Trash, TileType.Player];
     }
     create() {
         this.menuWidth = 385;
@@ -29,7 +26,7 @@ export class TileSelector extends Phaser.Scene {
         let xPosition = padding; // starting x position
         let countX = 0; // count of sprites in the current row
         this.tileTypes.forEach((tileType, index) => {
-            const spriteFrame = this.spriteLoader.getSpriteFrameById(tileType);
+            const spriteFrame = this.spriteLoader.getSpriteFrameByTileType(tileType);
             // Create a shadow sprite with a dark tint and an offset
             let shadow = this.add.sprite(xPosition + 3 + spriteSize / 2, yPosition + 3 + spriteSize / 2, 'spritesheet', spriteFrame)
                 .setOrigin(0.5, 0.5) // Change origin to the center
