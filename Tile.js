@@ -1,21 +1,21 @@
 export var Direction;
 (function (Direction) {
-    Direction[Direction["U"] = 0] = "U";
-    Direction[Direction["R"] = 1] = "R";
-    Direction[Direction["D"] = 2] = "D";
-    Direction[Direction["L"] = 3] = "L";
+    Direction[Direction["Up"] = 0] = "Up";
+    Direction[Direction["Right"] = 1] = "Right";
+    Direction[Direction["Down"] = 2] = "Down";
+    Direction[Direction["Left"] = 3] = "Left";
 })(Direction || (Direction = {}));
 export var TileType;
 (function (TileType) {
-    TileType[TileType["G"] = 0] = "G";
-    TileType[TileType["B"] = 1] = "B";
-    TileType[TileType["W"] = 2] = "W";
-    TileType[TileType["S"] = 3] = "S";
-    TileType[TileType["K"] = 4] = "K";
-    TileType[TileType["D"] = 5] = "D";
-    TileType[TileType["T"] = 6] = "T";
-    TileType[TileType["P"] = 7] = "P";
-    TileType[TileType["None"] = 8] = "None";
+    TileType["Grass"] = "G";
+    TileType["Bricks"] = "B";
+    TileType["Win"] = "W";
+    TileType["Swamp"] = "S";
+    TileType["Key"] = "K";
+    TileType["Door"] = "D";
+    TileType["Trash"] = "T";
+    TileType["Player"] = "P";
+    TileType["None"] = "None";
 })(TileType || (TileType = {}));
 (function (Direction) {
     Direction["North"] = "North";
@@ -64,5 +64,22 @@ export class Tile {
     }
     getPreviousTileDirection() {
         return this.previousTileDirection;
+    }
+    isEmpty() {
+        return this.type === TileType.None;
+    }
+    switchDirections() {
+        const tmpDirection = this.nextTileDirection;
+        this.nextTileDirection = this.previousTileDirection;
+        this.previousTileDirection = tmpDirection;
+    }
+    isOnTheBeginningOfTheLine() {
+        return this.previousTileDirection === undefined;
+    }
+    isOnTheEndOfTheLine() {
+        return this.nextTileDirection === undefined;
+    }
+    isOnOneOfTheEndsOfTheLine() {
+        return this.isOnTheEndOfTheLine() || this.isOnTheBeginningOfTheLine();
     }
 }
