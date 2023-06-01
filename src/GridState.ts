@@ -1,7 +1,7 @@
 import { DirectionCalculator } from "./DirectionCalculator.js";
 import { GridEditor } from "./GridEditor.js";
 import { GridPosition } from "./GridPosition.js";
-import { Player } from "./Player.js";
+import { Bender } from "./Bender.js";
 import { SpriteLoader } from "./SpriteLoader.js";
 import { Direction, Tile, TileType } from "./Tile.js";
 
@@ -10,7 +10,7 @@ export class GridState {
   public static readonly gridTileSize: { width: number; height: number } = { width: 100, height: 100 };
   public tiles: Tile[][] = [];
   public lines: Array<Array<Tile>> = [];
-  public player: Player = new Player({ x: 0, y: 0 }, undefined);
+  public bender: Bender = new Bender({ x: 0, y: 0 }, undefined);
 
   private spriteLoader = new SpriteLoader();
 
@@ -25,8 +25,8 @@ export class GridState {
   }
 
   public setTileType(position: GridPosition, tileType: TileType): void {
-    if(position.x === this.player.location.x && position.y === this.player.location.y) {
-      this.removePlayer();
+    if(position.x === this.bender.location.x && position.y === this.bender.location.y) {
+      this.removeBender();
     }
     const tile = this.getTile(position);
     if(!tile || tile.isEmpty()) { return; }
@@ -73,14 +73,14 @@ export class GridState {
     }
   }
 
-  public placePlayer(position: GridPosition): void {
-    this.removePlayer();
+  public placeBender(position: GridPosition): void {
+    this.removeBender();
     const tile = this.getTile(position);
     if (!tile) { return; }
     if (tile.sprite !== undefined && tile.getType() !== TileType.Key && tile.getType() !== TileType.Bricks) {
-      this.player.location.x = tile.location.x;
-      this.player.location.y = tile.location.y;
-      this.player.sprite = this.objectFactory.sprite(tile.location.x * GridEditor.tileSize + GridEditor.tileSize / 2, tile.location.y * GridEditor.tileSize + GridEditor.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameByTileType(TileType.Player)).setOrigin(0.5);
+      this.bender.location.x = tile.location.x;
+      this.bender.location.y = tile.location.y;
+      this.bender.sprite = this.objectFactory.sprite(tile.location.x * GridEditor.tileSize + GridEditor.tileSize / 2, tile.location.y * GridEditor.tileSize + GridEditor.tileSize / 2, 'spritesheet', this.spriteLoader.getSpriteFrameByTileType(TileType.Bender)).setOrigin(0.5);
     }
   }
 
@@ -89,8 +89,8 @@ export class GridState {
       console.error("Attempted to remove tile out of grid bounds");
       return;
     }
-    if(position.x === this.player.location.x && position.y === this.player.location.y) {
-      this.removePlayer();
+    if(position.x === this.bender.location.x && position.y === this.bender.location.y) {
+      this.removeBender();
     }
     const tile = this.getTile(position);
     if(!tile || tile.isEmpty()) { return; }
@@ -111,9 +111,9 @@ export class GridState {
     this.removeLine(lineIndex);
   }
 
-  private removePlayer() {
-    this.player.sprite?.destroy();  // remove sprite from scene
-    this.player.sprite = undefined;  // remove sprite reference
+  private removeBender() {
+    this.bender.sprite?.destroy();  // remove sprite from scene
+    this.bender.sprite = undefined;  // remove sprite reference
   }
 
   private reverseLine(lineIndex: number): void {

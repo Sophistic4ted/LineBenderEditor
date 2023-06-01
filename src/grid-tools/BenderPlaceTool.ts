@@ -3,13 +3,12 @@ import { GridState } from "../GridState.js";
 import { GridTool } from "./GridTool.js";
 
 
-export class PlayerPlaceTool implements GridTool {
+export class BenderPlaceTool implements GridTool {
     public onStartGestureCallback(gesture: GridMouseStartGesture, gridState: GridState): void {
-        gridState.placePlayer(gesture.getPosition());
+        gridState.placeBender(gesture.getPosition());
     }
 
     public onMoveGestureCallback(gesture: GridMouseMoveGesture, gridState: GridState): void {
-        gridState.placePlayer(gesture.getEndPosition());
+        gridState.placeBender(gesture.getEndPosition());
     }
-    
 }

@@ -8,11 +8,22 @@ export class TileSelector extends Phaser.Scene {
   private tileTypes: TileType[];
   private menuWidth: number = 0;
   private tileData: Map<TileType, { frame: Phaser.GameObjects.Graphics, shadow: Phaser.GameObjects.Sprite, sprite: Phaser.GameObjects.Sprite }> = new Map();
-
+  private spriteScale: number = 0.0;
   constructor() {
     super({ key: 'TileSelector' });
     this.spriteLoader = new SpriteLoader();
-    this.tileTypes = [TileType.Grass, TileType.Bricks, TileType.Win, TileType.Swamp, TileType.Key, TileType.Door, TileType.Trash, TileType.Player];
+    this.tileTypes = [
+      TileType.Grass,
+      TileType.Bricks,
+      TileType.Win,
+      TileType.Swamp,
+      TileType.Key,
+      TileType.Door,
+      TileType.Trash,
+      TileType.Copy,
+      TileType.Paste,
+      TileType.Bender
+    ];
   }
 
   create() {
@@ -21,7 +32,7 @@ export class TileSelector extends Phaser.Scene {
     this.cameras.main.setBackgroundColor('#888888');
     const padding = 30;  // Increased padding
     const spriteSize = (this.menuWidth - padding * 4) / 3;
-    const spriteScale = spriteSize / this.spriteLoader.tileSize;
+    this.spriteScale = spriteSize / this.spriteLoader.tileSize;
     let graphics = this.add.graphics({ lineStyle: { width: 20, color: 0xc9c5c5 } });
 
     // Draw a rounded rectangle around the menu
@@ -37,14 +48,14 @@ export class TileSelector extends Phaser.Scene {
       // Create a shadow sprite with a dark tint and an offset
       let shadow = this.add.sprite(xPosition + 3 + spriteSize / 2, yPosition + 3 + spriteSize / 2, 'spritesheet', spriteFrame)
         .setOrigin(0.5, 0.5)  // Change origin to the center
-        .setScale(spriteScale)
+        .setScale(this.spriteScale)
         .setTint(0x000000)
         .setAlpha(0.5);
 
       let sprite = this.add.sprite(xPosition, yPosition, 'spritesheet', spriteFrame)
         .setOrigin(0.5, 0.5)  // Change origin to the center
         .setPosition(xPosition + spriteSize / 2, yPosition + spriteSize / 2)
-        .setScale(spriteScale)
+        .setScale(this.spriteScale)
         .setInteractive();
 
       // Create a frame for each sprite
@@ -56,7 +67,7 @@ export class TileSelector extends Phaser.Scene {
 
       this.tileData.set(tileType, { frame, shadow, sprite })
       sprite.on('pointerdown', () => {
-        this.selectTile(tileType, spriteScale);
+        this.selectTile(tileType);
       });
 
       sprite.on('pointerover', () => {
@@ -78,13 +89,13 @@ export class TileSelector extends Phaser.Scene {
     });
   }
 
-  private selectTile(tileType: TileType, spriteScale: number) {
+  public selectTile(tileType: TileType) {
     if (this.selectedTile != undefined) {
       // Hide previous selection frame
       let previousTileData = this.tileData.get(this.selectedTile);
       if (previousTileData?.frame) previousTileData.frame.alpha = 0;
-      previousTileData?.sprite.setScale(spriteScale);
-      previousTileData?.shadow.setScale(spriteScale);
+      previousTileData?.sprite.setScale(this.spriteScale);
+      previousTileData?.shadow.setScale(this.spriteScale);
     }
     this.selectedTile = tileType;
 
@@ -92,9 +103,9 @@ export class TileSelector extends Phaser.Scene {
     // Show the frame of the selected sprite
     if (selectedTileData?.frame) selectedTileData.frame.alpha = 1;
 
-    selectedTileData?.sprite.setScale(spriteScale * 0.95); // Reduce the size of the sprite when it is selected
+    selectedTileData?.sprite.setScale(this.spriteScale * 0.95); // Reduce the size of the sprite when it is selected
     selectedTileData?.shadow.setScale(0);
-    eventsCenter.emit('update-tool', this.selectedTile)
+    eventsCenter.emit('use-tool', this.selectedTile)
   }
 
   getSelectedTile(): TileType | undefined {

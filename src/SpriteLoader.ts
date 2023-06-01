@@ -34,6 +34,8 @@ const spriteData = [
   { id: "WUN", xIndex: 3, yIndex: 6 },
 
   { id: "T", xIndex: 0, yIndex: 7 },
+  { id: "C", xIndex: 1, yIndex: 7 },
+  { id: "V", xIndex: 2, yIndex: 7 },
   { id: "P", xIndex: 4, yIndex: 1 }
 ];
 
