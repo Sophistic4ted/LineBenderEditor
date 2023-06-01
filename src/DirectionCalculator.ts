@@ -38,4 +38,17 @@ export class DirectionCalculator {
         return { x: position.x - 1, y: position.y };
     }
   }
+
+  public static fromString(character: string): Direction {
+    switch (character) {
+      case "U":
+        return Direction.North;
+      case "D":
+        return Direction.South;
+      case "R":
+        return Direction.East;
+      default:
+        return Direction.West;
+    }
+  }
 }

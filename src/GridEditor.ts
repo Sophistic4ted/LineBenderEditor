@@ -1,6 +1,6 @@
 import { SpriteLoader } from "./SpriteLoader.js";
 import eventsCenter from "./EventsCenter.js";
-import { TileType, Tile } from "./Tile.js";
+import { TileType, Tile, Direction } from "./Tile.js";
 import { GridCameraHandler } from "./GridCameraHandler.js";
 import { GridState } from "./GridState.js";
 import { GridTool } from "./grid-tools/GridTool.js";
@@ -8,10 +8,13 @@ import { RemoveTileTool } from "./grid-tools/RemoveTileTool.js";
 import { PlayerPlaceTool } from "./grid-tools/PlayerPlaceTool.js";
 import { TilePlaceTool } from "./grid-tools/TilePlaceTool.js";
 import { GridMouseGestureHandler } from "./GridMouseGesture.js";
+import { GridPosition } from "./GridPosition.js";
+import { DirectionCalculator } from "./DirectionCalculator.js";
 
 export class GridEditor extends Phaser.Scene {
-  public static readonly tileSize: number = 28;
-  private static readonly menuWidth: number = 385;
+  public static readonly tileSize = 28;
+  private static readonly menuWidth = 385;
+  private static readonly tilesLevelExportPadding = 2;
 
   private gridCameraHandler = new GridCameraHandler();
 
@@ -44,24 +47,24 @@ export class GridEditor extends Phaser.Scene {
     this.input.on('wheel', this.handleMouseWheel, this);
     this.scale.on('resize', this.handleResize, this);
 
-    // this.input.keyboard?.on('keydown-C', async () => {
-    //   const textToCopy = this.exportLines();
-    //   try {
-    //     await navigator.clipboard.writeText(textToCopy);
-    //   } catch (err) {
-    //     console.error('Error in copying text: ', err);
-    //   }
-    // });
+    this.input.keyboard?.on('keydown-C', async () => {
+      const textToCopy = this.exportLines();
+      if(textToCopy === undefined) { return; }
+      try {
+        await navigator.clipboard.writeText(textToCopy);
+      } catch (err) {
+        console.error('Error in copying text: ', err);
+      }
+    });
 
-
-    // this.input.keyboard?.on('keydown-V', async () => {
-    //   try {
-    //     const readText = await navigator.clipboard.readText();
-    //     this.importLines(readText);
-    //   } catch (err) {
-    //     console.error('Error in copying text: ', err);
-    //   }
-    // });
+    this.input.keyboard?.on('keydown-V', async () => {
+      try {
+        const readText = await navigator.clipboard.readText();
+        this.importLines(readText);
+      } catch (err) {
+        console.error('Error in copying text: ', err);
+      }
+    });
 
     eventsCenter.on('update-tool', this.updateTool, this);
     this.add.grid(
@@ -134,31 +137,73 @@ export class GridEditor extends Phaser.Scene {
     return pointer.x < camera.main.x || pointer.x > camera.main.x + camera.main.width ||
       pointer.y < camera.main.y || pointer.y > camera.main.y + camera.main.height;
   }
-/*
-  private exportLines(): string {
+
+  private exportLines(): string | undefined {
+    const playerTile = this.gridState.tiles[this.gridState.player.location.y][this.gridState.player.location.x];
+    const playerLine = playerTile.getLine();
+    if (playerLine === undefined) {
+      console.error("Player is not placed on any line");
+      return;
+    }
+    let playerTileIndex = this.gridState.lines[playerLine].indexOf(playerTile);
+    if(playerTileIndex < 0) {
+      console.error("Player is not placed on any line");
+      return;
+    }
+
+    const levelBounds = this.getLevelBounds();
+    let output = `${this.gridState.lines.length} ${playerLine} ${playerTileIndex} D\n`;
+    output += `${this.levelBoundsToString(levelBounds, GridEditor.tilesLevelExportPadding)}\n`;
+    this.gridState.lines.forEach(line => {
+      output += this.lineToString(line);
+    });
+
+    return output;
+  }
+
+  private levelBoundsToString(bounds: {topLeft: GridPosition, botRight: GridPosition}, padding: number): string {
+    return `${bounds.topLeft.x-padding} ${bounds.topLeft.y-padding} ${bounds.botRight.x + padding} ${bounds.botRight.y + padding}`;
+  }
+
+  private lineToString(line: Tile[]): string {
+    const firstTile = line[0];
+    let output = `${line.length} ${firstTile.location.x} ${firstTile.location.y} `;
+
+    line.forEach((tile, index) => {
+      let direction = this.directionToString(tile.nextTileDirection);
+      const tileType = tile.type;
+
+      if (index === line.length - 1) {
+        output += `${tileType}\n`;
+      } else {
+        output += `${direction}${tileType} `;
+      }
+    });
+    return output;
+  }
+
+  private directionToString(direction: Direction | undefined): string {
+    switch (direction) {
+      case Direction.North:
+        return 'U';
+      case Direction.South:
+        return 'D';
+      case Direction.East:
+        return 'R';
+      case Direction.West:
+        return 'L';
+      default:
+        return '';
+    }
+
+  }
+
+  private getLevelBounds(): {topLeft: GridPosition, botRight: GridPosition} {
     let minX: number = Number.MAX_SAFE_INTEGER;
     let minY: number = Number.MAX_SAFE_INTEGER;
     let maxX: number = Number.MIN_SAFE_INTEGER;
     let maxY: number = Number.MIN_SAFE_INTEGER;
-    let deletedLines = 0;
-    const playerTile = this.gridState.tiles[this.gridState.player.location.y][this.gridState.player.location.x];
-    const playerLineOrig = playerTile.getLine();
-    let playerLine = 0;
-    if (playerLineOrig !== undefined) {
-
-      this.gridState.lines.forEach((line, index) => {
-        if (line.length === 0) {
-          if (index < playerLineOrig) {
-            deletedLines++;
-          }
-        }
-        playerLine = playerLineOrig - deletedLines;
-        playerLine = playerLine < 0 ? 0 : playerLine;
-      });
-    }
-
-    const lines = this.gridState.lines.filter(n => n.length > 0)
-    lines.forEach(line => {
+    this.gridState.lines.forEach(line => {
       line.forEach(tile => {
         if (tile.location.x < minX) minX = tile.location.x;
         if (tile.location.y < minY) minY = tile.location.y;
@@ -166,127 +211,91 @@ export class GridEditor extends Phaser.Scene {
         if (tile.location.y > maxY) maxY = tile.location.y;
       });
     });
-    let padding = 2;
-
-
-    let playerTileIndex = 0;
-    if (playerLine !== undefined) {
-      playerTileIndex = lines[playerLine].indexOf(playerTile);
-      playerTileIndex = playerTileIndex < 0 ? 0 : playerTileIndex;
-    }
-    let output: string = `${lines.length} ${playerLine} ${playerTileIndex} D\n`;
-    output += `${-padding} ${-padding} ${maxX - minX + padding} ${maxY - minY + padding}\n`;
-    lines.forEach(line => {
-
-      output += `${line.length} `;
-
-      line.forEach((tile, index) => {
-        const normalizedX = tile.location.x - minX;
-        const normalizedY = tile.location.y - minY;
-
-        const gridPosition = `${normalizedX} ${normalizedY}`;
-
-        let direction;
-        switch (tile.nextTileDirection) {
-          case Direction.North:
-            direction = 'U';
-            break;
-          case Direction.South:
-            direction = 'D';
-            break;
-          case Direction.East:
-            direction = 'R';
-            break;
-          case Direction.West:
-            direction = 'L';
-            break;
-          default:
-            direction = '';
-            break;
-        }
-
-        const tileType = tile.type;
-
-        // For the last tile, exclude the direction of the next tile
-        if (index === 0) {
-          output += `${gridPosition} ${direction}${tileType} `
-        } else if (index === line.length - 1) {
-          output += `${tileType}\n`;
-        } else {
-          output += `${direction}${tileType} `;
-        }
-      });
-    });
-
-    return output;
+    return {
+      topLeft: new GridPosition(minX, minY),
+      botRight: new GridPosition(maxX, maxY)
+    };
   }
 
   private importLines(input: string) {
     this.gridState.tiles.forEach(row => {
       row.forEach(tile => {
-        this.removeAt(tile.location.x, tile.location.y);
+        this.gridState.removeTileAt(tile.location);
       }
       )
     });
-    this.gridState.lines.forEach(line => {
-      line.forEach(tile => {
-        this.removeAt(tile.location.x, tile.location.y);
-      }
-      )
-    });
-    this.gridState.tiles = [];
-    this.gridState.lines = [];
-    this.initTileMap();
     let inputLines = input.replace(/(\r)/gm, "").split('\n');
-    let numberOfLines = parseInt(inputLines[0]);
-    let [minX, minY, maxX, maxY] = inputLines[1].split(' ');
-    let minXnum = 50 - Number(minX);
-    let minYnum = 50 - Number(minY);
-    for (let i = 1; i <= numberOfLines + 1; i++) {
-      this.gridState.lines.push([])
-      this.isDrawing = true;
-      if (i < 2) continue; // skip the camera position line
-      let lineData = inputLines[i].split(' ');
-      let numberOfTiles = parseInt(lineData[0]);
-      let x = parseInt(lineData[1]) + minXnum; // normalize x
-      let y = parseInt(lineData[2]) + minYnum; // normalize y
+    let numberOfLines = parseInt(inputLines[0].split(' ')[0]);
 
-      for (let j = 3; j < 3 + numberOfTiles; j++) {
-        let tileData = lineData[j];
-        let type = tileData.slice(-1);
-        if (tileData.length == 1) {
-          type = tileData[0]
-        }
-
-        let tile = new Tile(TileType[type as keyof typeof TileType], { x, y }, i);
-        this.placeAt(x, y, TileType[type as keyof typeof TileType]);
-        if (tileData.length == 2) {
-          switch (tileData.slice(0, -1)) {
-            case 'U':
-              y--;
-              break;
-            case 'D':
-              if (j == 3) {
-                this.addToBeginning = true;
-              }
-              y++;
-              break;
-            case 'R':
-              x++;
-              break;
-            case 'L':
-              if (j == 3) {
-                this.addToBeginning = true;
-              }
-              x--;
-              break;
-          }
-        }
-
-        this.gridState.lines[i - 2].push(tile);
-      }
-      this.addToBeginning = false;
-      this.isDrawing = false;
+    for (let i = 2; i < numberOfLines + 2; i++) {
+      this.insertLineFromString(inputLines[i]);
     }
-  }*/
+
+    const playerLineIndex = parseInt(inputLines[0].split(' ')[1]);
+    const playerTileIndex = parseInt(inputLines[0].split(' ')[2]);
+    const playerLocation = this.gridState.lines.at(playerLineIndex)?.at(playerTileIndex)?.location;
+    if(!playerLocation) { return; }
+    this.gridState.placePlayer(playerLocation);
+  }
+
+  private insertLineFromString(lineString: string): void {
+    let lineData = lineString.split(' ');
+    let numberOfTiles = parseInt(lineData[0]);
+
+    if(numberOfTiles === 1) {
+      this.createOneTileLine(lineString);
+    } else {
+      this.createMultipleTilesLine(lineString);
+    }
+
+  }
+
+  private createOneTileLine(lineString: string): void {
+    let lineData = lineString.split(' ');
+    let x = parseInt(lineData[1]);
+    let y = parseInt(lineData[2]);
+    let currentEndOfLine = new GridPosition(x, y);
+
+    const firstTileData = lineData[3];
+    this.gridState.createNewLineAt(currentEndOfLine, this.stringToTileType(firstTileData[0]));
+  }
+
+  private createMultipleTilesLine(lineString: string): void {
+    let lineData = lineString.split(' ');
+    let numberOfTiles = parseInt(lineData[0]);
+    let x = parseInt(lineData[1]);
+    let y = parseInt(lineData[2]);
+    let currentEndOfLine = new GridPosition(x, y);
+
+    // create first tile
+    const firstTileData = lineData[3];
+    this.gridState.createNewLineAt(currentEndOfLine, this.stringToTileType(firstTileData[1]));
+
+    // for every next tile create tile and connect to the previous one
+    for(let i = 4; i < numberOfTiles + 2; i++) {
+      let tileData = lineData[i];
+      let previousTileData = lineData[i - 1];
+      let newEndOfLinePosition = DirectionCalculator.addDirection(currentEndOfLine, DirectionCalculator.fromString(previousTileData[0]));
+      this.gridState.createNewLineAt(newEndOfLinePosition, this.stringToTileType(tileData[1]));
+      this.gridState.tryConnectingTiles(currentEndOfLine, newEndOfLinePosition);
+      currentEndOfLine = newEndOfLinePosition;
+    }
+
+    // last tile
+    let tileData = lineData[numberOfTiles + 2];
+    let previousTileData = lineData[numberOfTiles + 1];
+    let newEndOfLinePosition = DirectionCalculator.addDirection(currentEndOfLine, DirectionCalculator.fromString(previousTileData[0]));
+    this.gridState.createNewLineAt(newEndOfLinePosition, this.stringToTileType(tileData[0]));
+    this.gridState.tryConnectingTiles(currentEndOfLine, newEndOfLinePosition);
+  }
+
+  private stringToTileType(character: string): TileType {
+    if(character === TileType.Grass) { return TileType.Grass; }
+    if(character === TileType.Bricks) { return TileType.Bricks; }
+    if(character === TileType.Swamp) { return TileType.Swamp; }
+    if(character === TileType.Win) { return TileType.Win; }
+    if(character === TileType.Key) { return TileType.Key; }
+    if(character === TileType.Door) { return TileType.Door; }
+    return TileType.None;
+  }
 }
