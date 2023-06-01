@@ -1,4 +1,4 @@
-export class Player {
+export class Bender {
     location;
     sprite;
     direction;

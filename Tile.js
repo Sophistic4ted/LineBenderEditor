@@ -14,7 +14,9 @@ export var TileType;
     TileType["Key"] = "K";
     TileType["Door"] = "D";
     TileType["Trash"] = "T";
-    TileType["Player"] = "P";
+    TileType["Bender"] = "P";
+    TileType["Copy"] = "C";
+    TileType["Paste"] = "V";
     TileType["None"] = "None";
 })(TileType || (TileType = {}));
 (function (Direction) {

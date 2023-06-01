@@ -12,18 +12,18 @@ export class GridCameraHandler {
         camera.main.setZoom(2);
         this.scrollFloat = new Phaser.Math.Vector2(camera.main.scrollX, camera.main.scrollY);
     }
-    handleMouseDown(camera, pointer) {
-        if (!pointer.middleButtonDown() || this.isPointerOutOfCameraBounds(camera, pointer)) {
+    handleMouseDown(pointer, camera) {
+        if (!pointer.middleButtonDown() || this.isPointerOutOfCameraBounds(pointer, camera)) {
             return;
         }
         this.isDragging = true;
         this.dragPosition.set(pointer.x, pointer.y);
     }
-    handleMouseMove(camera, pointer) {
+    handleMouseMove(pointer, camera) {
         if (!pointer.middleButtonDown()) {
             return;
         }
-        if (this.isPointerOutOfCameraBounds(camera, pointer)) {
+        if (this.isPointerOutOfCameraBounds(pointer, camera)) {
             this.isDragging = false;
             return;
         }
@@ -38,8 +38,8 @@ export class GridCameraHandler {
             this.isDragging = false;
         }
     }
-    handleMouseWheel(camera, pointer, deltaY, worldBounds) {
-        if (this.isPointerOutOfCameraBounds(camera, pointer)) {
+    handleMouseWheel(pointer, camera, deltaY, worldBounds) {
+        if (this.isPointerOutOfCameraBounds(pointer, camera)) {
             return;
         }
         const newZoom = this.getNewZoom(camera, deltaY, worldBounds);
@@ -51,7 +51,7 @@ export class GridCameraHandler {
         camera.main.scrollX = this.scrollFloat.x;
         camera.main.scrollY = this.scrollFloat.y;
     }
-    isPointerOutOfCameraBounds(camera, pointer) {
+    isPointerOutOfCameraBounds(pointer, camera) {
         return pointer.x < camera.main.x || pointer.x > camera.main.x + camera.main.width ||
             pointer.y < camera.main.y || pointer.y > camera.main.y + camera.main.height;
     }
