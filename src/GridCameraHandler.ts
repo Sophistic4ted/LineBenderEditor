@@ -1,73 +1,80 @@
+type Camera = Phaser.Cameras.Scene2D.CameraManager;
+type Pointer = Phaser.Input.Pointer;
+type Vector2 = Phaser.Math.Vector2;
 
 export class GridCameraHandler {
+  private static readonly zoomRate = 0.001;
+  private static readonly maxCameraZoom = 3;
+  private static readonly zoomDuration = 200;
+
   private isDragging: boolean = false;
   private dragPosition = new Phaser.Math.Vector2();
-  private scrollXFloat: number = 0;
-  private scrollYFloat: number = 0;
+  private scrollFloat = new Phaser.Math.Vector2();
 
-  public initCamera(camera: Phaser.Cameras.Scene2D.CameraManager, menuWidth: number, worldBounds: Phaser.Math.Vector2, scale: { width: number, height: number }): void {
+  public initCamera(camera: Camera, menuWidth: number, worldBounds: Vector2, scale: { width: number, height: number }): void {
     camera.main.setViewport(menuWidth, 0, scale.width - menuWidth, scale.height);
     camera.main.setBounds(0, 0, worldBounds.x, worldBounds.y);
     camera.main.centerOn(worldBounds.x / 2, worldBounds.y / 2);
     camera.main.setZoom(2);
-    this.scrollXFloat = camera.main.scrollX;
-    this.scrollYFloat = camera.main.scrollY;
+    this.scrollFloat = new Phaser.Math.Vector2(camera.main.scrollX, camera.main.scrollY);
   }
 
-  public handleMouseDown(camera: Phaser.Cameras.Scene2D.CameraManager, pointer: Phaser.Input.Pointer) {
-    if (
-      pointer.middleButtonDown() &&
-      pointer.x > camera.main.x && pointer.x < camera.main.x + camera.main.width &&
-      pointer.y > camera.main.y && pointer.y < camera.main.y + camera.main.height
-    ) {
-      this.isDragging = true;
+  public handleMouseDown(camera: Camera, pointer: Pointer) {
+    if (!pointer.middleButtonDown() || this.isPointerOutOfCameraBounds(camera, pointer)) {
+      return;
+    }
+    this.isDragging = true;
+    this.dragPosition.set(pointer.x, pointer.y);
+  }
+
+  public handleMouseMove(camera: Camera, pointer: Pointer) {
+    if (!pointer.middleButtonDown()) { return; }
+    if (this.isPointerOutOfCameraBounds(camera, pointer)) {
+      this.isDragging = false;
+      return;
+    }
+    if (this.isDragging) {
+      const delta = this.dragPosition.subtract(pointer.position);
+      this.moveCamera(camera, delta);
       this.dragPosition.set(pointer.x, pointer.y);
     }
   }
 
-  public handleMouseMove(camera: Phaser.Cameras.Scene2D.CameraManager, pointer: Phaser.Input.Pointer) {
-    if (pointer.middleButtonDown()) {
-      if (
-        pointer.x < camera.main.x || pointer.x > camera.main.x + camera.main.width ||
-        pointer.y < camera.main.y || pointer.y > camera.main.y + camera.main.height
-      ) {
-        this.isDragging = false;
-      } else {
-        if (this.isDragging) {
-          const deltaX = this.dragPosition.x - pointer.x;
-          const deltaY = this.dragPosition.y - pointer.y;
-          this.scrollXFloat += deltaX / camera.main.zoomX;
-          this.scrollYFloat += deltaY / camera.main.zoomY;
-          camera.main.scrollX = this.scrollXFloat;
-          camera.main.scrollY = this.scrollYFloat;
-          this.dragPosition.set(pointer.x, pointer.y);
-        }
-      }
-    }
-  }
-
-  public handleMouseUp(pointer: Phaser.Input.Pointer) {
+  public handleMouseUp(pointer: Pointer) {
     if (pointer.middleButtonReleased()) {
       this.isDragging = false;
     }
   }
-  
-  public handleMouseWheel(camera: Phaser.Cameras.Scene2D.CameraManager, pointer: Phaser.Input.Pointer, deltaY: number, worldBounds: Phaser.Math.Vector2) {
-    if (
-      pointer.x < camera.main.x || pointer.x > camera.main.x + camera.main.width ||
-      pointer.y < camera.main.y || pointer.y > camera.main.y + camera.main.height
-    ) {
+
+  public handleMouseWheel(camera: Camera, pointer: Pointer, deltaY: number, worldBounds: Vector2) {
+    if (this.isPointerOutOfCameraBounds(camera, pointer)) {
       return;
     }
+    const newZoom = this.getNewZoom(camera, deltaY, worldBounds);
+    camera.main.zoomTo(newZoom, GridCameraHandler.zoomDuration);
+  }
 
-    let newZoom = camera.main.zoom - deltaY * 0.001; // change this to smaller value for smoother zoom
+  private moveCamera(camera: Camera, deltaPointer: Vector2): void {
+    const deltaScroll = deltaPointer.divide({x: camera.main.zoomX, y: camera.main.zoomY});
+    this.scrollFloat = this.scrollFloat.add(deltaScroll);
+    camera.main.scrollX = this.scrollFloat.x;
+    camera.main.scrollY = this.scrollFloat.y;
+  }
 
+  private isPointerOutOfCameraBounds(camera: Camera, pointer: Pointer): boolean {
+    return pointer.x < camera.main.x || pointer.x > camera.main.x + camera.main.width ||
+      pointer.y < camera.main.y || pointer.y > camera.main.y + camera.main.height;
+  }
+
+  private getMaxZoom(camera: Camera, worldBounds: Vector2): number {
     const maxZoomX = camera.main.width / worldBounds.x;
     const maxZoomY = camera.main.height / worldBounds.y;
-    const maxZoom = Math.max(maxZoomX, maxZoomY);
+    return Math.max(maxZoomX, maxZoomY);
+  }
 
-    newZoom = Phaser.Math.Clamp(newZoom, maxZoom, 3);
-
-    camera.main.zoomTo(newZoom, 200); // Use zoomTo for smoother transition
+  private getNewZoom(camera: Camera, deltaY: number, worldBounds: Vector2): number {
+    let newZoom = camera.main.zoom - deltaY * GridCameraHandler.zoomRate;
+    const maxZoom = this.getMaxZoom(camera, worldBounds);
+    return Phaser.Math.Clamp(newZoom, maxZoom, GridCameraHandler.maxCameraZoom);
   }
 }

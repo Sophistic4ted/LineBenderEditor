@@ -63,5 +63,23 @@ export class Tile {
   isEmpty(): boolean {
     return this.type === TileType.None;
   }
+
+  switchDirections(): void {
+    const tmpDirection = this.nextTileDirection;
+    this.nextTileDirection = this.previousTileDirection;
+    this.previousTileDirection = tmpDirection;
+  }
+
+  isOnTheBeginningOfTheLine(): boolean {
+    return this.previousTileDirection === undefined;
+  }
+
+  isOnTheEndOfTheLine(): boolean {
+    return this.nextTileDirection === undefined;
+  }
+  
+  isOnOneOfTheEndsOfTheLine(): boolean {
+    return this.isOnTheEndOfTheLine() || this.isOnTheBeginningOfTheLine();
+  }
 }
 
