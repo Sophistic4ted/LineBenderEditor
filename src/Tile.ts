@@ -7,7 +7,9 @@ export enum TileType {
   Key = 'K',
   Door = 'D',
   Trash = 'T',
-  Player = 'P',
+  Bender = 'P',
+  Copy = 'C',
+  Paste = 'V',
   None = 'None'
 }
 export enum Direction {
