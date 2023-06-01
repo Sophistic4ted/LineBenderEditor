@@ -2,12 +2,16 @@
 export class GridCameraHandler {
   private isDragging: boolean = false;
   private dragPosition = new Phaser.Math.Vector2();
+  private scrollXFloat: number = 0;
+  private scrollYFloat: number = 0;
 
   public initCamera(camera: Phaser.Cameras.Scene2D.CameraManager, menuWidth: number, worldBounds: Phaser.Math.Vector2, scale: { width: number, height: number }): void {
     camera.main.setViewport(menuWidth, 0, scale.width - menuWidth, scale.height);
     camera.main.setBounds(0, 0, worldBounds.x, worldBounds.y);
     camera.main.centerOn(worldBounds.x / 2, worldBounds.y / 2);
     camera.main.setZoom(2);
+    this.scrollXFloat = camera.main.scrollX;
+    this.scrollYFloat = camera.main.scrollY;
   }
 
   public handleMouseDown(camera: Phaser.Cameras.Scene2D.CameraManager, pointer: Phaser.Input.Pointer) {
@@ -32,8 +36,10 @@ export class GridCameraHandler {
         if (this.isDragging) {
           const deltaX = this.dragPosition.x - pointer.x;
           const deltaY = this.dragPosition.y - pointer.y;
-          camera.main.scrollX += deltaX;
-          camera.main.scrollY += deltaY;
+          this.scrollXFloat += deltaX / camera.main.zoomX;
+          this.scrollYFloat += deltaY / camera.main.zoomY;
+          camera.main.scrollX = this.scrollXFloat;
+          camera.main.scrollY = this.scrollYFloat;
           this.dragPosition.set(pointer.x, pointer.y);
         }
       }
