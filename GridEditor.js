@@ -54,10 +54,12 @@ export class GridEditor extends Phaser.Scene {
     useTool(tool) {
         if (tool === TileType.Copy) {
             this.selectedTool = undefined;
+            tool = TileType.None;
             this.clipboardManager.copyToClipboard();
         }
         if (tool === TileType.Paste) {
             this.selectedTool = undefined;
+            tool = TileType.None;
             this.clipboardManager.pasteFromClipboard();
         }
         if (tool === TileType.Trash) {
