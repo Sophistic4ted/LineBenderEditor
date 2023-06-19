@@ -162,6 +162,18 @@ export class DataTransferHandler {
         if (character === TileType.Door) {
             return TileType.Door;
         }
+        if (character === TileType.Hydro) {
+            return TileType.Hydro;
+        }
+        if (character === TileType.Portal1) {
+            return TileType.Portal1;
+        }
+        if (character === TileType.Portal2) {
+            return TileType.Portal2;
+        }
+        if (character === TileType.Portal3) {
+            return TileType.Portal3;
+        }
         return TileType.None;
     }
 }
