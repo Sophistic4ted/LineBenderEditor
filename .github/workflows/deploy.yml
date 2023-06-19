@@ -22,9 +22,6 @@ jobs:
     - name: Build
       run: npm run build
       
-    - name: Create dist folder
-      run: mkdir dist
-      
     - name: Copy base to dist
       run: cp -r ./base/. ./dist/.
       
