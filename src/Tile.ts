@@ -7,6 +7,8 @@ export enum TileType {
   Key = 'K',
   Door = 'D',
   Hydro = 'H',
+  Fire = 'F',
+  LevelSwitch = 'L',
   Portal1 = '1',
   Portal2 = '2',
   Portal3 = '3',

@@ -20,6 +20,8 @@ export class TileSelector extends Phaser.Scene {
       TileType.Key,
       TileType.Door,
       TileType.Hydro,
+      TileType.Fire,
+      TileType.LevelSwitch,
       TileType.Portal1,
       TileType.Portal2,
       TileType.Portal3,
