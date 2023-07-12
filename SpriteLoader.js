@@ -29,6 +29,14 @@ const spriteData = [
     { id: "HWN", xIndex: 2, yIndex: 13 },
     { id: "HUU", xIndex: 6, yIndex: 13 },
     { id: "HUN", xIndex: 7, yIndex: 13 },
+    { id: "F", xIndex: 0, yIndex: 18 },
+    { id: "FWN", xIndex: 2, yIndex: 18 },
+    { id: "FUU", xIndex: 6, yIndex: 18 },
+    { id: "FUN", xIndex: 7, yIndex: 18 },
+    { id: "L", xIndex: 0, yIndex: 6 },
+    { id: "LWN", xIndex: 2, yIndex: 6 },
+    { id: "LUU", xIndex: 6, yIndex: 6 },
+    { id: "LUN", xIndex: 7, yIndex: 6 },
     { id: "1", xIndex: 0, yIndex: 14 },
     { id: "1WN", xIndex: 2, yIndex: 14 },
     { id: "1UU", xIndex: 6, yIndex: 14 },
@@ -41,9 +49,9 @@ const spriteData = [
     { id: "3WN", xIndex: 2, yIndex: 16 },
     { id: "3UU", xIndex: 6, yIndex: 16 },
     { id: "3UN", xIndex: 7, yIndex: 16 },
-    { id: "T", xIndex: 0, yIndex: 18 },
-    { id: "C", xIndex: 1, yIndex: 18 },
-    { id: "V", xIndex: 2, yIndex: 18 },
+    { id: "T", xIndex: 11, yIndex: 19 },
+    { id: "C", xIndex: 12, yIndex: 19 },
+    { id: "V", xIndex: 13, yIndex: 19 },
     { id: "P", xIndex: 11, yIndex: 1 }
 ];
 // Create a map of TileType to frame index

@@ -165,6 +165,12 @@ export class DataTransferHandler {
         if (character === TileType.Hydro) {
             return TileType.Hydro;
         }
+        if (character === TileType.Fire) {
+            return TileType.Fire;
+        }
+        if (character === TileType.LevelSwitch) {
+            return TileType.LevelSwitch;
+        }
         if (character === TileType.Portal1) {
             return TileType.Portal1;
         }

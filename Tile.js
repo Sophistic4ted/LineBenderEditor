@@ -14,6 +14,8 @@ export var TileType;
     TileType["Key"] = "K";
     TileType["Door"] = "D";
     TileType["Hydro"] = "H";
+    TileType["Fire"] = "F";
+    TileType["LevelSwitch"] = "L";
     TileType["Portal1"] = "1";
     TileType["Portal2"] = "2";
     TileType["Portal3"] = "3";
